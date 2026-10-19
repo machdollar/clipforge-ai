@@ -1,1 +1,487 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2563eb">
+  <title>ClipForge AI — Create Amazing Shorts</title>
+  <style>
+    :root {
+      --blue: #2563eb;
+      --dark-blue: #1d4ed8;
+      --ink: #14213d;
+      --muted: #64748b;
+      --background: #f5f8ff;
+      --border: #e5eaf3;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--background);
+      color: var(--ink);
+    }
+
+    header {
+      height: 70px;
+      padding: 0 6%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: white;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 20px;
+      font-weight: 850;
+    }
+
+    .logo {
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      color: white;
+      background: linear-gradient(135deg, #60a5fa, #1d4ed8);
+    }
+
+    .tag {
+      color: var(--blue);
+      background: #eff6ff;
+      border: 1px solid #dbeafe;
+      border-radius: 30px;
+      padding: 7px 11px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    main {
+      width: min(960px, 100%);
+      margin: auto;
+      padding: 44px 18px 60px;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .eyebrow {
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 14px 0;
+      font-size: clamp(34px, 7vw, 54px);
+      line-height: 1.08;
+      letter-spacing: -2px;
+    }
+
+    h1 span { color: var(--blue); }
+
+    .hero p {
+      max-width: 570px;
+      margin: auto;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .panel {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: clamp(18px, 4vw, 30px);
+      box-shadow: 0 12px 35px #1e40af0a;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 6px;
+      margin-bottom: 24px;
+      border-radius: 14px;
+      background: #f1f5fb;
+    }
+
+    .tab {
+      padding: 13px 8px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 750;
+      cursor: pointer;
+    }
+
+    .tab.active {
+      color: var(--blue);
+      background: white;
+      box-shadow: 0 2px 8px #0f172a0c;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 9px;
+      font-size: 14px;
+      font-weight: 750;
+    }
+
+    .input {
+      width: 100%;
+      min-width: 0;
+      padding: 14px;
+      border: 1px solid #dbe3f0;
+      border-radius: 12px;
+      background: white;
+      color: var(--ink);
+      font: inherit;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .input:focus {
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 3px #3b82f61c;
+    }
+
+    .url-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .url-row input { flex: 1; }
+
+    .primary {
+      padding: 14px 17px;
+      border: none;
+      border-radius: 12px;
+      color: white;
+      background: var(--blue);
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .primary:hover { background: var(--dark-blue); }
+
+    .hint {
+      margin: 9px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .drop {
+      padding: 32px 16px;
+      border: 2px dashed #b9c9e6;
+      border-radius: 16px;
+      background: #f8fbff;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .drop:hover {
+      border-color: var(--blue);
+      background: #f2f7ff;
+    }
+
+    .upload-icon {
+      display: grid;
+      place-items: center;
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 12px;
+      border-radius: 15px;
+      background: #eaf2ff;
+      color: var(--blue);
+      font-size: 26px;
+    }
+
+    .drop strong { font-size: 15px; }
+    .drop p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .hidden { display: none !important; }
+
+    .status {
+      display: none;
+      margin-top: 18px;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .status.show { display: block; }
+    .status.info {
+      color: #1e40af;
+      background: #eff6ff;
+      border: 1px solid #dbeafe;
+    }
+    .status.error {
+      color: #9f1239;
+      background: #fff1f2;
+      border: 1px solid #ffe4e6;
+    }
+    .status.success {
+      color: #166534;
+      background: #f0fdf4;
+      border: 1px solid #dcfce7;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 13px;
+      margin-top: 18px;
+    }
+
+    .feature {
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: white;
+    }
+
+    .feature .icon { font-size: 23px; }
+    .feature h3 {
+      margin: 10px 0 6px;
+      font-size: 14px;
+    }
+
+    .feature p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    footer {
+      margin-top: 30px;
+      color: #94a3b8;
+      text-align: center;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    @media (max-width: 600px) {
+      main { padding-top: 28px; }
+      .url-row { flex-direction: column; }
+      .primary { width: 100%; }
+      .features { grid-template-columns: 1fr; }
+      .feature { display: flex; gap: 13px; }
+      .feature h3 { margin-top: 2px; }
+      header { padding: 0 16px; }
+      .tag { font-size: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo">✂</div>
+    <span>ClipForge <span style="color:#2563eb">AI</span></span>
+  </div>
+  <div class="tag">VIDEO → SHORTS</div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="eyebrow">✦ Your ideas, in the spotlight</div>
+    <h1>Long video in.<br><span>Great clips out.</span></h1>
+    <p>
+      Turn your long videos into short-form content.
+      Start with a YouTube link or select a video from your phone.
+    </p>
+  </section>
+
+  <section class="panel">
+    <div class="tabs" role="tablist">
+      <button class="tab active" id="urlTab" type="button"
+        role="tab" aria-selected="true">▶ YouTube link</button>
+      <button class="tab" id="uploadTab" type="button"
+        role="tab" aria-selected="false">↑ Upload a video</button>
+    </div>
+
+    <form id="urlForm">
+      <label for="videoUrl">YouTube video URL</label>
+      <div class="url-row">
+        <input class="input" id="videoUrl" type="url"
+          placeholder="https://www.youtube.com/watch?v=..."
+          autocomplete="url" required>
+        <button class="primary" type="submit">Find best moments ↗</button>
+      </div>
+      <p class="hint">
+        Use a video you own or have permission to process.
+        AI analysis and clip rendering will be connected in a later step.
+      </p>
+    </form>
+
+    <div id="uploadPane" class="hidden">
+      <label for="videoFile">Choose a video file</label>
+      <input class="hidden" id="videoFile" type="file" accept="video/*">
+
+      <div class="drop" id="dropZone" role="button" tabindex="0">
+        <div class="upload-icon">↑</div>
+        <strong id="dropTitle">Tap to choose a video</strong>
+        <p id="dropSub">MP4, MOV, or WebM · choose a file from your phone</p>
+      </div>
+
+      <p class="hint">
+        In this prototype, the file stays on your device.
+        It is not uploaded or analyzed yet.
+      </p>
+    </div>
+
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+  </section>
+
+  <section class="features">
+    <article class="feature">
+      <div class="icon">🎯</div>
+      <div>
+        <h3>Spot the highlights</h3>
+        <p>AI highlight detection will identify engaging moments when the backend is connected.</p>
+      </div>
+    </article>
+    <article class="feature">
+      <div class="icon">📱</div>
+      <div>
+        <h3>Vertical-ready design</h3>
+        <p>A mobile-first workflow designed for short-form video.</p>
+      </div>
+    </article>
+    <article class="feature">
+      <div class="icon">⚡</div>
+      <div>
+        <h3>Simple workflow</h3>
+        <p>Start with a link or file, then review and export clips in a future version.</p>
+      </div>
+    </article>
+  </section>
+
+  <footer>
+    ClipForge AI · Early prototype<br>
+    Your video workflow, built one step at a time.
+  </footer>
+</main>
+
+<script>
+  const urlTab = document.getElementById("urlTab");
+  const uploadTab = document.getElementById("uploadTab");
+  const urlForm = document.getElementById("urlForm");
+  const uploadPane = document.getElementById("uploadPane");
+  const statusBox = document.getElementById("status");
+  const videoFile = document.getElementById("videoFile");
+  const dropZone = document.getElementById("dropZone");
+
+  function showStatus(message, type = "info") {
+    statusBox.textContent = message;
+    statusBox.className = "status show " + type;
+  }
+
+  function switchTab(showUrl) {
+    urlTab.classList.toggle("active", showUrl);
+    uploadTab.classList.toggle("active", !showUrl);
+    urlTab.setAttribute("aria-selected", String(showUrl));
+    uploadTab.setAttribute("aria-selected", String(!showUrl));
+    urlForm.classList.toggle("hidden", !showUrl);
+    uploadPane.classList.toggle("hidden", showUrl);
+    statusBox.className = "status";
+  }
+
+  urlTab.addEventListener("click", () => switchTab(true));
+  uploadTab.addEventListener("click", () => switchTab(false));
+
+  function isYouTubeUrl(raw) {
+    try {
+      const u = new URL(raw);
+      const host = u.hostname.toLowerCase();
+      const isYouTubeHost =
+        host === "youtube.com" ||
+        host === "www.youtube.com" ||
+        host === "m.youtube.com" ||
+        host === "youtu.be";
+
+      if (!isYouTubeHost) return false;
+
+      if (host === "youtu.be") return u.pathname.length > 1;
+      if (u.pathname === "/watch") return u.searchParams.has("v");
+
+      return u.pathname.startsWith("/shorts/") ||
+             u.pathname.startsWith("/live/");
+    } catch {
+      return false;
+    }
+  }
+
+  urlForm.addEventListener("submit", event => {
+    event.preventDefault();
+
+    const value = document.getElementById("videoUrl").value.trim();
+
+    if (!isYouTubeUrl(value)) {
+      showStatus(
+        "Please enter a valid YouTube video link, such as youtube.com/watch?v=... or youtu.be/...",
+        "error"
+      );
+      return;
+    }
+
+    showStatus(
+      "Your link looks valid! The AI processing service is not connected yet. The next step is to add a secure backend for transcription, highlight selection, and clip rendering. No video has been downloaded or analyzed.",
+      "info"
+    );
+  });
+
+  dropZone.addEventListener("click", () => videoFile.click());
+
+  dropZone.addEventListener("keydown", event => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      videoFile.click();
+    }
+  });
+
+  videoFile.addEventListener("change", () => {
+    const file = videoFile.files && videoFile.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("video/")) {
+      showStatus("Please select a video file.", "error");
+      videoFile.value = "";
+      return;
+    }
+
+    document.getElementById("dropTitle").textContent = file.name;
+    document.getElementById("dropSub").textContent =
+      (file.size / (1024 * 1024)).toFixed(1) +
+      " MB · selected on this device";
+
+    showStatus(
+      "Video selected successfully. It has not been uploaded or analyzed. We will add secure video processing in the next stage.",
+      "success"
+    );
+  });
+</script>
+</body>
+  </html>
+
