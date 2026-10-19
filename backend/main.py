@@ -5,11 +5,12 @@ from urllib.parse import urlparse, parse_qs
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, HttpUrl
 from openai import OpenAI, APIError
+from youtube_transcript_api import YouTubeTranscriptApi
 
 app = FastAPI(
     title="ClipForge AI API",
-    description="Backend for AI-powered video highlight generation",
-    version="0.2.0",
+    description="AI-powered video highlight analysis",
+    version="0.3.0",
 )
 
 
@@ -35,21 +36,14 @@ def extract_video_id(url: str) -> str:
         video_id = ""
 
     if not re.fullmatch(r"[A-Za-z0-9_-]{11}", video_id):
-        raise HTTPException(
-            status_code=400,
-            detail="Please provide a valid YouTube video URL.",
-        )
+        raise HTTPException(status_code=400, detail="Please provide a valid YouTube URL.")
 
     return video_id
 
 
 @app.get("/")
 def home():
-    return {
-        "name": "ClipForge AI API",
-        "status": "online",
-        "message": "Backend is running.",
-    }
+    return {"name": "ClipForge AI API", "status": "online"}
 
 
 @app.get("/health")
@@ -60,40 +54,78 @@ def health():
 @app.post("/ai-test")
 def ai_test():
     if not os.environ.get("OPENAI_API_KEY"):
-        raise HTTPException(
-            status_code=503,
-            detail="OpenAI API key is not configured on the server.",
-        )
+        raise HTTPException(status_code=503, detail="OpenAI API key is not configured.")
 
     try:
-        client = OpenAI()
-        response = client.responses.create(
+        response = OpenAI().responses.create(
             model="gpt-5.5",
             input="Reply with exactly: ClipForge AI connection successful.",
             max_output_tokens=30,
         )
-        return {
-            "status": "success",
-            "message": response.output_text,
-        }
+        return {"status": "success", "message": response.output_text}
     except APIError:
-        # Do not expose credentials or detailed provider errors.
-        raise HTTPException(
-            status_code=502,
-            detail="The OpenAI request failed. Check API access, model availability, and billing in your provider account.",
-        )
+        raise HTTPException(status_code=502, detail="OpenAI request failed. Check model access and API billing.")
 
 
 @app.post("/analyze")
 def analyze(request: AnalyzeRequest):
     video_id = extract_video_id(str(request.youtube_url))
-    return {
-        "status": "accepted",
-        "video_id": video_id,
-        "video_url": f"https://www.youtube.com/watch?v={video_id}",
-        "highlights": [],
-        "message": (
-            "The URL is valid. AI highlight selection and clip rendering "
-            "are not implemented yet."
-        ),
+
+    try:
+        transcript_items = YouTubeTranscriptApi().fetch(video_id)
+        transcript = [
+            {
+                "start": float(item.start),
+                "duration": float(item.duration),
+                "text": item.text,
+            }
+            for item in transcript_items
+        ]
+    except Exception:
+        raise HTTPException(
+            status_code=422,
+            detail="A transcript could not be retrieved for this video. It may be unavailable or restricted. Try a video with captions enabled.",
+        )
+
+    if not transcript:
+        raise HTTPException(status_code=422, detail="The transcript is empty.")
+
+    # Limit transcript size and retain timestamps.
+    transcript = transcript[:1200]
+    transcript_text = "\n".join(
+        f"[{item['start']:.1f}s] {item['text']}"
+        for item in transcript
+    )
+
+    try:
+        response = OpenAI().responses.create(
+            model="gpt-5.5",
+            instructions=(
+                "You are a video editor. Identify up to 5 engaging short-form "
+                "video moments from the supplied transcript. Only use timestamps "
+                "present in the transcript. Return valid JSON with a highlights "
+                "array. Each highlight must have start_seconds, end_seconds, "
+                "title, and reason. Choose segments around 15 to 60 seconds when "
+                "the transcript supports it. Do not invent transcript content."
+            ),
+            input=transcript_text,
+            max_output_tokens=1200,
+        )
+
+        import json
+        result_text = response.output_text
+        result = json.loads(result_text)
+        highlights = result.get("highlights", [])
+
+        return {
+            "status": "success",
+            "video_id": video_id,
+            "video_url": f"https://www.youtube.com/watch?v={video_id}",
+            "highlights": highlights[:5],
+            "message": "Transcript analyzed. These are suggested moments, not rendered clips.",
         }
+    except (APIError, ValueError):
+        raise HTTPException(
+            status_code=502,
+            detail="AI analysis failed. Check model access and try again.",
+        )
