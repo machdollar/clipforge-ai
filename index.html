@@ -433,25 +433,64 @@
     }
   }
 
-  urlForm.addEventListener("submit", event => {
-    event.preventDefault();
+  urlForm.addEventListener("submit", async event => {
+  event.preventDefault();
 
-    const value = document.getElementById("videoUrl").value.trim();
+  const value = document.getElementById("videoUrl").value.trim();
 
-    if (!isYouTubeUrl(value)) {
-      showStatus(
-        "Please enter a valid YouTube video link, such as youtube.com/watch?v=... or youtu.be/...",
-        "error"
+  if (!isYouTubeUrl(value)) {
+    showStatus(
+      "Please enter a valid YouTube video link.",
+      "error"
+    );
+    return;
+  }
+
+  const submitButton = urlForm.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
+  submitButton.textContent = "Checking link...";
+
+  showStatus("Connecting securely to ClipForge AI...", "info");
+
+  try {
+    const response = await fetch(
+      "https://clipforge-ai-p7mk.onrender.com/analyze",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          youtube_url: value
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.detail || "The backend could not validate this link."
       );
-      return;
     }
 
     showStatus(
-      "Your link looks valid! The AI processing service is not connected yet. The next step is to add a secure backend for transcription, highlight selection, and clip rendering. No video has been downloaded or analyzed.",
-      "info"
+      "Link accepted! Video ID: " + data.video_id +
+      ". " + data.message,
+      "success"
     );
-  });
-
+  } catch (error) {
+    showStatus(
+      "Could not contact the backend. Please try again. Details: " +
+      error.message,
+      "error"
+    );
+  } finally {
+    submitButton.disabled = false;
+    submitButton.textContent = "Find best moments ↗";
+  }
+});
+  
   dropZone.addEventListener("click", () => videoFile.click());
 
   dropZone.addEventListener("keydown", event => {
