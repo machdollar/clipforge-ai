@@ -171,11 +171,26 @@ async def upload_audio(file: UploadFile = File(...)):
             response_format="verbose_json",
             timestamp_granularities=["segment"],
         )
-    except APIError:
-        raise HTTPException(
-            status_code=502,
-            detail="Transcription failed. Check OpenAI API access and billing."
-        )
+    except APIError as exc:
+    error_status = getattr(exc, "status_code", None)
+    error_code = getattr(exc, "code", None)
+    error_type = type(exc).__name__
+
+    print(
+        f"Audio transcription error: type={error_type}, "
+        f"status={error_status}, code={error_code}"
+    )
+
+    raise HTTPException(
+        status_code=502,
+        detail={
+            "message": "OpenAI transcription request failed.",
+            "error_type": error_type,
+            "openai_status": error_status,
+            "openai_code": error_code,
+            "hint": "Check Render logs and OpenAI API billing/model access."
+        }
+    )
 
     segments = getattr(transcription, "segments", None) or []
     if not segments:
