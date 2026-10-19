@@ -1,7 +1,5 @@
 fastapi
 uvicorn[standard]
 pydantic
-fastapi
-uvicorn[standard]
-pydantic
 openai
+youtube-transcript-api
