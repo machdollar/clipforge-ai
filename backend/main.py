@@ -1,17 +1,24 @@
+import json
 import os
 import re
 from urllib.parse import urlparse, parse_qs
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from pydantic import BaseModel, HttpUrl
 from openai import OpenAI, APIError
 from youtube_transcript_api import YouTubeTranscriptApi
 
 app = FastAPI(
     title="ClipForge AI API",
-    description="AI-powered video highlight analysis",
-    version="0.3.0",
+    description="AI-powered video and audio highlight analysis",
+    version="0.4.0",
 )
+
+MAX_AUDIO_BYTES = 20 * 1024 * 1024
+ALLOWED_EXTENSIONS = {
+    ".mp3", ".m4a", ".wav", ".webm", ".mp4",
+    ".mpeg", ".mpga", ".oga", ".ogg", ".flac"
+}
 
 
 class AnalyzeRequest(BaseModel):
@@ -41,6 +48,32 @@ def extract_video_id(url: str) -> str:
     return video_id
 
 
+def detect_highlights(transcript_text: str):
+    try:
+        response = OpenAI().responses.create(
+            model="gpt-5.5",
+            instructions=(
+                "Identify up to 15 engaging short-form moments from this "
+                "timestamped transcript. Only use supplied timestamps; do not "
+                "invent content. Return valid JSON with a highlights array. "
+                "Each item needs numeric start_seconds, end_seconds, title, "
+                "and reason. Prefer 15-60 second moments where supported."
+            ),
+            input=transcript_text,
+            max_output_tokens=1200,
+        )
+        result = json.loads(response.output_text)
+        highlights = result.get("highlights", [])
+        if not isinstance(highlights, list):
+            raise ValueError("Invalid highlights format")
+        return highlights[:5]
+    except (APIError, ValueError):
+        raise HTTPException(
+            status_code=502,
+            detail="AI analysis failed. Check model access and API billing."
+        )
+
+
 @app.get("/")
 def home():
     return {"name": "ClipForge AI API", "status": "online"}
@@ -64,7 +97,10 @@ def ai_test():
         )
         return {"status": "success", "message": response.output_text}
     except APIError:
-        raise HTTPException(status_code=502, detail="OpenAI request failed. Check model access and API billing.")
+        raise HTTPException(
+            status_code=502,
+            detail="OpenAI request failed. Check model access and API billing."
+        )
 
 
 @app.post("/analyze")
@@ -72,60 +108,98 @@ def analyze(request: AnalyzeRequest):
     video_id = extract_video_id(str(request.youtube_url))
 
     try:
-        transcript_items = YouTubeTranscriptApi().fetch(video_id)
+        items = YouTubeTranscriptApi().fetch(video_id)
         transcript = [
-            {
-                "start": float(item.start),
-                "duration": float(item.duration),
-                "text": item.text,
-            }
-            for item in transcript_items
+            {"start": float(item.start), "text": item.text}
+            for item in items
         ]
     except Exception:
         raise HTTPException(
             status_code=422,
-            detail="A transcript could not be retrieved for this video. It may be unavailable or restricted. Try a video with captions enabled.",
+            detail="Could not retrieve this video's transcript. Try /upload-audio with an authorized audio file."
         )
 
     if not transcript:
         raise HTTPException(status_code=422, detail="The transcript is empty.")
 
-    # Limit transcript size and retain timestamps.
-    transcript = transcript[:1200]
     transcript_text = "\n".join(
         f"[{item['start']:.1f}s] {item['text']}"
-        for item in transcript
+        for item in transcript[:1200]
     )
+    highlights = detect_highlights(transcript_text)
+
+    return {
+        "status": "success",
+        "video_id": video_id,
+        "video_url": f"https://www.youtube.com/watch?v={video_id}",
+        "highlights": highlights,
+        "message": "Suggested moments only; video clips have not been rendered."
+    }
+
+
+@app.post("/upload-audio")
+async def upload_audio(file: UploadFile = File(...)):
+    if not os.environ.get("OPENAI_API_KEY"):
+        raise HTTPException(status_code=503, detail="OpenAI API key is not configured.")
+
+    filename = os.path.basename(file.filename or "audio")
+    extension = os.path.splitext(filename)[1].lower()
+
+    if extension not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported format. Use MP3, M4A, WAV, WebM, MP4, OGG, OGA, FLAC, or MPEG."
+        )
+
+    audio_bytes = await file.read(MAX_AUDIO_BYTES + 1)
+    await file.close()
+
+    if not audio_bytes:
+        raise HTTPException(status_code=400, detail="The uploaded file is empty.")
+
+    if len(audio_bytes) > MAX_AUDIO_BYTES:
+        raise HTTPException(status_code=413, detail="Maximum upload size is 20 MB.")
 
     try:
-        response = OpenAI().responses.create(
-            model="gpt-5.5",
-            instructions=(
-                "You are a video editor. Identify up to 5 engaging short-form "
-                "video moments from the supplied transcript. Only use timestamps "
-                "present in the transcript. Return valid JSON with a highlights "
-                "array. Each highlight must have start_seconds, end_seconds, "
-                "title, and reason. Choose segments around 15 to 60 seconds when "
-                "the transcript supports it. Do not invent transcript content."
+        transcription = OpenAI().audio.transcriptions.create(
+            model="whisper-1",
+            file=(
+                filename,
+                audio_bytes,
+                file.content_type or "application/octet-stream"
             ),
-            input=transcript_text,
-            max_output_tokens=1200,
+            response_format="verbose_json",
+            timestamp_granularities=["segment"],
         )
-
-        import json
-        result_text = response.output_text
-        result = json.loads(result_text)
-        highlights = result.get("highlights", [])
-
-        return {
-            "status": "success",
-            "video_id": video_id,
-            "video_url": f"https://www.youtube.com/watch?v={video_id}",
-            "highlights": highlights[:5],
-            "message": "Transcript analyzed. These are suggested moments, not rendered clips.",
-        }
-    except (APIError, ValueError):
+    except APIError:
         raise HTTPException(
             status_code=502,
-            detail="AI analysis failed. Check model access and try again.",
+            detail="Transcription failed. Check OpenAI API access and billing."
         )
+
+    segments = getattr(transcription, "segments", None) or []
+    if not segments:
+        raise HTTPException(
+            status_code=422,
+            detail="No timestamped speech segments were returned. Try another audio file."
+        )
+
+    transcript_text = "\n".join(
+        f"[{float(segment.start):.1f}s] {segment.text.strip()}"
+        for segment in segments
+        if getattr(segment, "text", "").strip()
+    )
+
+    if not transcript_text:
+        raise HTTPException(status_code=422, detail="No speech could be transcribed.")
+
+    highlights = detect_highlights(transcript_text)
+
+    return {
+        "status": "success",
+        "filename": filename,
+        "transcript": getattr(transcription, "text", ""),
+        "highlights": highlights,
+        "message": "Audio transcribed and analyzed. Suggested moments only; no clips rendered."
+            }
+    
