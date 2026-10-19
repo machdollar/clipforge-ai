@@ -60,13 +60,13 @@ def detect_highlights(transcript_text: str):
                 "and reason. Prefer 15-60 second moments where supported."
             ),
             input=transcript_text,
-            max_output_tokens=1200,
+            max_output_tokens=3000,
         )
         result = json.loads(response.output_text)
         highlights = result.get("highlights", [])
         if not isinstance(highlights, list):
             raise ValueError("Invalid highlights format")
-        return highlights[:5]
+        return highlights[:15]
     except (APIError, ValueError):
         raise HTTPException(
             status_code=502,
