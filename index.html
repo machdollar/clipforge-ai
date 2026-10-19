@@ -3,445 +3,493 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#111827">
-  <meta name="description" content="Find promising video highlights from timestamped transcripts with ClipForge AI.">
-  <title>ClipForge AI — Transcript Highlights</title>
+  <meta name="theme-color" content="#101020">
+  <title>ClipForge AI — Smart Video Highlights</title>
   <style>
     :root {
       color-scheme: dark;
-      --bg: #0b1020;
-      --panel: #131b2e;
-      --panel2: #19243b;
-      --text: #f4f7ff;
-      --muted: #a5b1ca;
-      --line: #2b3854;
-      --blue: #7c8cff;
-      --cyan: #55e3d0;
-      --danger: #ff9ca8;
+      --bg: #101020;
+      --panel: #19192d;
+      --muted: #a7a7c2;
+      --text: #f7f6ff;
+      --purple: #a78bfa;
+      --cyan: #67e8f9;
+      --border: #34344d;
     }
+
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
-      background:
-        radial-gradient(ellipse at top left, #253368 0, transparent 38%),
-        var(--bg);
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
       color: var(--text);
-      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-      line-height: 1.55;
+      background:
+        radial-gradient(ellipse at top left, #30205d 0, transparent 42%),
+        radial-gradient(ellipse at top right, #12394b 0, transparent 36%),
+        var(--bg);
     }
-    header {
-      max-width: 1050px;
+
+    button, textarea { font: inherit; }
+
+    .container {
+      width: min(900px, 100%);
       margin: auto;
-      padding: 22px 20px;
+      padding: 24px 16px 56px;
+    }
+
+    header {
       display: flex;
       align-items: center;
-      justify-content: space-between;
       gap: 12px;
-      border-bottom: 1px solid #ffffff12;
+      margin-bottom: 46px;
     }
-    .brand { font-weight: 900; font-size: 20px; letter-spacing: -.5px; }
-    .brand span { color: var(--cyan); }
+
+    .logo {
+      display: grid;
+      place-items: center;
+      width: 48px;
+      height: 48px;
+      border-radius: 15px;
+      background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+      font-size: 25px;
+      font-weight: 900;
+    }
+
+    header h1 { margin: 0; font-size: 21px; }
+    header p { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
+
+    .hero { text-align: center; margin-bottom: 30px; }
+
     .pill {
-      border: 1px solid #55e3d055;
-      color: var(--cyan);
-      background: #55e3d010;
-      border-radius: 999px;
-      padding: 6px 10px;
-      font-size: 11px;
-      font-weight: 800;
-    }
-    main { max-width: 900px; margin: auto; padding: 40px 18px 60px; }
-    .hero { text-align: center; margin-bottom: 28px; }
-    .eyebrow {
-      color: var(--cyan);
+      display: inline-block;
+      padding: 7px 12px;
+      border: 1px solid #65519a;
+      border-radius: 99px;
+      color: #ddd0ff;
       font-size: 12px;
-      font-weight: 850;
-      letter-spacing: 2px;
-      text-transform: uppercase;
+      background: #34245b77;
     }
-    h1 {
-      margin: 12px 0;
-      font-size: clamp(34px, 7vw, 56px);
+
+    .hero h2 {
+      margin: 18px 0 12px;
+      font-size: clamp(32px, 7vw, 54px);
       line-height: 1.08;
-      letter-spacing: -2px;
+      letter-spacing: -1.5px;
     }
-    h1 span {
-      background: linear-gradient(90deg, var(--blue), var(--cyan));
+
+    .gradient {
+      background: linear-gradient(90deg, #c4b5fd, #67e8f9);
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
     }
-    .hero p { max-width: 590px; margin: 0 auto; color: var(--muted); }
-    .panel {
-      padding: clamp(17px, 4vw, 28px);
-      border: 1px solid var(--line);
-      border-radius: 22px;
-      background: #131b2eee;
-      box-shadow: 0 20px 70px #0003;
+
+    .hero > p {
+      max-width: 570px;
+      margin: auto;
+      line-height: 1.7;
+      color: var(--muted);
     }
-    label { display: block; font-weight: 800; margin-bottom: 9px; }
+
+    .panel {
+      padding: 22px;
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      background: #19192deF;
+      box-shadow: 0 22px 65px #0003;
+    }
+
+    .section-title {
+      margin: 0 0 8px;
+      font-size: 19px;
+    }
+
+    .help {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
     textarea {
       display: block;
       width: 100%;
-      min-height: 230px;
+      min-height: 220px;
       resize: vertical;
       padding: 15px;
-      border: 1px solid var(--line);
-      border-radius: 13px;
-      background: #0b1222;
+      border: 1px solid #42425e;
+      border-radius: 14px;
+      outline: none;
       color: var(--text);
-      font: 14px/1.7 ui-monospace, SFMono-Regular, Consolas, monospace;
+      background: #101020;
+      line-height: 1.7;
     }
+
     textarea:focus {
-      outline: 2px solid var(--blue);
-      outline-offset: 2px;
+      border-color: var(--purple);
+      box-shadow: 0 0 0 3px #a78bfa22;
     }
-    .hint { color: var(--muted); font-size: 12px; margin: 9px 0 16px; }
-    .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
     button {
-      min-height: 44px;
-      border: 1px solid var(--line);
-      border-radius: 11px;
-      padding: 11px 15px;
-      background: var(--panel2);
+      min-height: 45px;
+      padding: 11px 17px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
       color: var(--text);
-      font: inherit;
-      font-size: 14px;
-      font-weight: 800;
+      background: #292941;
       cursor: pointer;
     }
-    button:hover { filter: brightness(1.13); }
+
     button:disabled { opacity: .6; cursor: wait; }
+
     .primary {
+      flex: 1;
       border: 0;
-      color: #091323;
-      background: linear-gradient(100deg, var(--blue), var(--cyan));
+      color: #171329;
+      font-weight: 800;
+      background: linear-gradient(100deg, #c4b5fd, #67e8f9);
     }
+
     .status {
-      display: none;
-      margin-top: 17px;
-      padding: 13px 15px;
-      border: 1px solid var(--line);
+      margin-top: 15px;
+      padding: 12px 14px;
       border-radius: 12px;
+      background: #25253b;
+      color: var(--muted);
       font-size: 13px;
+      line-height: 1.5;
       overflow-wrap: anywhere;
     }
-    .status.show { display: block; }
-    .status.info { background: #263354; }
-    .status.success { background: #10352f; border-color: #25675c; }
-    .status.error { background: #421f30; border-color: #81374e; color: #ffd5dc; }
-    #results { margin-top: 28px; }
-    .results-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-    h2 { margin: 0; font-size: 22px; }
-    .count { color: var(--cyan); font-size: 13px; font-weight: 800; }
-    .notice { color: var(--muted); font-size: 12px; margin: 0 0 16px; }
-    .cards { display: grid; gap: 13px; }
-    .result-card {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 16px;
+
+    .status.error { color: #fecaca; background: #471e2b; }
+    .status.success { color: #bbf7d0; background: #163a32; }
+
+    .results { margin-top: 28px; }
+    .results h2 { margin-bottom: 6px; }
+    .results-summary { color: var(--muted); font-size: 13px; }
+
+    .highlight {
+      margin-top: 14px;
       padding: 17px;
-      min-width: 0;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--panel);
     }
-    .card-top {
+
+    .highlight-top {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    .time {
-      color: var(--cyan);
-      font-size: 12px;
-      font-weight: 850;
-      letter-spacing: .4px;
-    }
-    .result-card h3 { margin: 7px 0 10px; font-size: 17px; overflow-wrap: anywhere; }
-    .excerpt { color: #dbe4f8; margin: 0 0 10px; white-space: pre-wrap; overflow-wrap: anywhere; }
-    .reason { color: var(--muted); font-size: 12px; margin: 0; }
-    .copy-button { min-height: 36px; padding: 7px 10px; font-size: 12px; }
-    .features {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
       gap: 12px;
-      margin-top: 18px;
     }
-    .feature {
-      background: #ffffff08;
-      border: 1px solid #ffffff12;
-      border-radius: 14px;
-      padding: 16px;
+
+    .highlight h3 { margin: 0; font-size: 16px; line-height: 1.5; }
+
+    .time {
+      flex-shrink: 0;
+      padding: 6px 9px;
+      border-radius: 8px;
+      color: #a5f3fc;
+      background: #164e6380;
+      font-size: 12px;
+      font-weight: 700;
     }
-    .feature strong { display: block; margin-bottom: 5px; font-size: 14px; }
-    .feature p { color: var(--muted); font-size: 12px; margin: 0; }
-    footer { text-align: center; color: var(--muted); font-size: 12px; padding: 30px 12px 0; }
-    @media (max-width: 620px) {
-      main { padding-top: 28px; }
-      header { padding: 17px; }
-      .features { grid-template-columns: 1fr; }
-      .actions button { flex: 1 1 100%; }
-      .result-card { padding: 14px; }
+
+    .reason, .excerpt {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+      overflow-wrap: anywhere;
+    }
+
+    .excerpt {
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      color: #e1e1f2;
+      white-space: pre-wrap;
+    }
+
+    .small-button { min-height: 36px; padding: 7px 11px; font-size: 12px; }
+
+    .hidden { display: none; }
+
+    footer {
+      margin-top: 30px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    @media (max-width: 520px) {
+      .container { padding: 18px 12px 38px; }
+      header { margin-bottom: 35px; }
+      .panel { padding: 16px; }
+      .highlight-top { flex-direction: column; }
+      .time { order: -1; }
+      .actions button { width: 100%; }
     }
   </style>
 </head>
 <body>
-<header>
-  <div class="brand">✂ ClipForge <span>AI</span></div>
-  <div class="pill">TRANSCRIPT TO HIGHLIGHTS</div>
-</header>
-
-<main>
-  <section class="hero">
-    <div class="eyebrow">✦ Find the moments that matter</div>
-    <h1>Your transcript in.<br><span>Highlights out.</span></h1>
-    <p>Paste a timestamped transcript to rank promising moments and get suggested start and end times. No external AI API credit required.</p>
-  </section>
-
-  <section class="panel">
-    <form id="highlightForm">
-      <label for="transcript">Your timestamped transcript</label>
-      <textarea id="transcript" name="transcript" minlength="20"
-        maxlength="100000" required
-        placeholder="[00:00:10] Today I will explain an important lesson.
-[00:00:35] Here is the biggest mistake people make.
-[00:01:05] Why does this happen? Let us look at the solution.
-[00:01:40] Remember this key tip for next time."></textarea>
-      <p class="hint">
-        Use one timestamp per line. Examples: [00:45] Words spoken,
-        [01:02:15] Words spoken, or [75s] Words spoken.
-        Maximum transcript length: 100,000 characters.
-      </p>
-      <div class="actions">
-        <button class="primary" id="submitButton" type="submit">✦ Find Highlights</button>
-        <button id="sampleButton" type="button">Load sample</button>
-        <button id="clearButton" type="button">Clear</button>
+  <main class="container">
+    <header>
+      <div class="logo" aria-hidden="true">C</div>
+      <div>
+        <h1>ClipForge AI</h1>
+        <p>Turn transcripts into highlight ideas</p>
       </div>
-    </form>
-    <div id="status" class="status" role="status" aria-live="polite"></div>
-  </section>
+    </header>
 
-  <section id="results" hidden aria-live="polite">
-    <div class="results-head">
-      <h2>Your suggested highlights</h2>
-      <div class="count" id="resultCount"></div>
-    </div>
-    <p class="notice" id="resultNotice"></p>
-    <div class="cards" id="resultsList"></div>
-  </section>
+    <section class="hero">
+      <span class="pill">✦ Transcript Highlight Studio</span>
+      <h2>Find the moments<br><span class="gradient">worth sharing.</span></h2>
+      <p>
+        Paste a timestamped transcript and get suggested highlight moments.
+        Review the timestamps before editing your video.
+      </p>
+    </section>
 
-  <section class="features">
-    <article class="feature">
-      <strong>🎯 Ranked moments</strong>
-      <p>Find transcript lines with useful signals, questions, lessons and tips.</p>
-    </article>
-    <article class="feature">
-      <strong>⚡ No AI API credit</strong>
-      <p>The current endpoint uses local text heuristics rather than an external AI service.</p>
-    </article>
-    <article class="feature">
-      <strong>📱 Mobile ready</strong>
-      <p>Paste transcripts and review results directly on your phone.</p>
-    </article>
-  </section>
+    <section class="panel">
+      <h2 class="section-title">Your transcript</h2>
+      <p class="help">
+        Put each timestamp and its spoken text on a separate line.
+        Examples: <code>0:15</code>, <code>1:20</code>, or
+        <code>01:02:10</code>. Paste at least 20 characters.
+      </p>
 
-  <footer>
-    ClipForge AI · Early prototype<br>
-    Suggestions are not verified video cuts. Review the timestamps before editing.
-  </footer>
-</main>
+      <label for="transcript" class="help">Timestamped transcript text</label>
+      <textarea id="transcript" maxlength="100000"
+        placeholder="0:05 Welcome to this video.
+0:15 Here is the biggest mistake beginners make.
+0:30 The solution is to start with a simple plan.
+0:45 This surprising result changed everything.
+1:00 Remember this important lesson."></textarea>
 
-<script>
-  const API_URL =
-    "https://clipforge-ai-p7mk.onrender.com/transcript-highlights";
+      <div class="actions">
+        <button type="button" id="sampleBtn">Load sample</button>
+        <button type="button" id="clearBtn">Clear</button>
+        <button type="button" class="primary" id="analyzeBtn">
+          Find highlights →
+        </button>
+      </div>
 
-  const form = document.getElementById("highlightForm");
-  const transcriptInput = document.getElementById("transcript");
-  const submitButton = document.getElementById("submitButton");
-  const statusBox = document.getElementById("status");
-  const resultsSection = document.getElementById("results");
-  const resultsList = document.getElementById("resultsList");
+      <div id="status" class="status" role="status" aria-live="polite">
+        Ready. Paste a timestamped transcript to begin.
+      </div>
+    </section>
 
-  const sampleTranscript = [
-    "[00:00:10] Today I will explain an important lesson.",
-    "[00:00:35] Here is the biggest mistake people make.",
-    "[00:01:05] Why does this happen? Let us look at the solution.",
-    "[00:01:40] Remember this key tip for next time."
-  ].join("\n");
+    <section id="results" class="results hidden" aria-live="polite">
+      <h2>Suggested highlights</h2>
+      <p id="summary" class="results-summary"></p>
+      <div id="highlightList"></div>
+    </section>
 
-  function showStatus(message, type = "info") {
-    statusBox.textContent = message;
-    statusBox.className = "status show " + type;
-  }
+    <footer>
+      <p>ClipForge AI · Powered by your Render backend</p>
+      <p>
+        Suggestions are generated using text heuristics, not an external AI
+        API. They are not verified video cuts, and this page does not create
+        video files.
+      </p>
+    </footer>
+  </main>
 
-  function formatTime(totalSeconds) {
-    const seconds = Math.max(0, Math.floor(Number(totalSeconds) || 0));
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const remaining = seconds % 60;
+  <script>
+    const API_URL =
+      "https://clipforge-ai-p7mk.onrender.com/transcript-highlights";
 
-    if (hours > 0) {
-      return [hours, minutes, remaining]
-        .map((value, index) => index === 0 ? String(value) : String(value).padStart(2, "0"))
-        .join(":");
+    const transcriptInput = document.getElementById("transcript");
+    const analyzeBtn = document.getElementById("analyzeBtn");
+    const sampleBtn = document.getElementById("sampleBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const statusBox = document.getElementById("status");
+    const results = document.getElementById("results");
+    const summary = document.getElementById("summary");
+    const highlightList = document.getElementById("highlightList");
+
+    const sample = [
+      "0:05 Welcome to this video.",
+      "0:15 Here is the biggest mistake beginners make.",
+      "0:30 The solution is to start with a simple plan.",
+      "0:45 This surprising result changed everything.",
+      "1:00 Remember this important lesson."
+    ].join("\n");
+
+    function setStatus(message, type = "") {
+      statusBox.textContent = message;
+      statusBox.className = "status" + (type ? " " + type : "");
     }
 
-    return [minutes, remaining]
-      .map(value => String(value).padStart(2, "0"))
-      .join(":");
-  }
+    function formatTime(totalSeconds) {
+      const seconds = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const remaining = seconds % 60;
 
-  function addTextElement(parent, tag, className, text) {
-    const element = document.createElement(tag);
-    if (className) element.className = className;
-    element.textContent = text == null ? "" : String(text);
-    parent.appendChild(element);
-    return element;
-  }
+      if (hours > 0) {
+        return [hours, minutes, remaining]
+          .map((n, i) => i === 0 ? String(n) : String(n).padStart(2, "0"))
+          .join(":");
+      }
 
-  function renderResults(data) {
-    resultsList.replaceChildren();
-    const highlights = Array.isArray(data.highlights) ? data.highlights : [];
+      return minutes + ":" + String(remaining).padStart(2, "0");
+    }
 
-    document.getElementById("resultCount").textContent =
-      `${highlights.length} highlight${highlights.length === 1 ? "" : "s"}`;
+    function addTextElement(parent, tag, className, text) {
+      const element = document.createElement(tag);
+      if (className) element.className = className;
+      element.textContent = text == null ? "" : String(text);
+      parent.appendChild(element);
+      return element;
+    }
 
-    document.getElementById("resultNotice").textContent =
-      `${data.message || "Review all suggested timestamps before editing."}` +
-      (Number(data.skipped_lines) > 0
-        ? ` ${data.skipped_lines} line(s) could not be parsed as timestamped entries.`
-        : "");
+    function renderHighlights(data) {
+      highlightList.replaceChildren();
+      const items = Array.isArray(data.highlights) ? data.highlights : [];
 
-    highlights.forEach((item, index) => {
-      const card = document.createElement("article");
-      card.className = "result-card";
+      summary.textContent =
+        `${items.length} suggestion(s) · Mode: ${data.mode || "unknown"}` +
+        (data.skipped_lines ? ` · Skipped lines: ${data.skipped_lines}` : "");
 
-      const top = document.createElement("div");
-      top.className = "card-top";
+      if (items.length === 0) {
+        addTextElement(
+          highlightList, "p", "status",
+          data.message || "No highlights found. Check your timestamp format."
+        );
+      }
 
-      const times = `${formatTime(item.start_seconds)} – ${formatTime(item.end_seconds)}`;
-      addTextElement(top, "div", "time", times);
+      items.forEach((item) => {
+        const card = document.createElement("article");
+        card.className = "highlight";
 
-      const copyButton = document.createElement("button");
-      copyButton.type = "button";
-      copyButton.className = "copy-button";
-      copyButton.textContent = "Copy timestamps";
-      copyButton.addEventListener("click", async () => {
-        const text = `${formatTime(item.start_seconds)} - ${formatTime(item.end_seconds)} | ${item.title || "Highlight"}`;
-        try {
-          await navigator.clipboard.writeText(text);
-          copyButton.textContent = "Copied!";
-        } catch {
-          showStatus("Clipboard access was blocked by your browser. You can select and copy the timestamps manually.", "error");
+        const top = document.createElement("div");
+        top.className = "highlight-top";
+
+        addTextElement(top, "h3", "", item.title || "Suggested highlight");
+
+        const time = addTextElement(
+          top, "span", "time",
+          `${formatTime(item.start_seconds)} – ${formatTime(item.end_seconds)}`
+        );
+
+        card.appendChild(top);
+
+        if (item.reason) {
+          addTextElement(card, "p", "reason", item.reason);
         }
-      });
-      top.appendChild(copyButton);
-      card.appendChild(top);
 
-      addTextElement(card, "h3", "", `${index + 1}. ${item.title || "Suggested highlight"}`);
+        if (item.transcript_excerpt) {
+          addTextElement(card, "p", "excerpt", item.transcript_excerpt);
+        }
 
-      if (item.transcript_excerpt) {
-        addTextElement(card, "p", "excerpt", `“${item.transcript_excerpt}”`);
-      }
+        const copyButton = addTextElement(
+          card, "button", "small-button", "Copy timestamps"
+        );
+        copyButton.type = "button";
+        copyButton.addEventListener("click", async () => {
+          const text =
+            `${formatTime(item.start_seconds)} - ${formatTime(item.end_seconds)}: ` +
+            `${item.title || "Suggested highlight"}`;
 
-      if (item.reason) {
-        addTextElement(card, "p", "reason", item.reason);
-      }
+          try {
+            await navigator.clipboard.writeText(text);
+            setStatus("Copied highlight timestamps.", "success");
+          } catch {
+            setStatus("Clipboard access failed. You can select and copy the timestamps manually.", "error");
+          }
+        });
 
-      resultsList.appendChild(card);
-    });
-
-    resultsSection.hidden = false;
-    resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  document.getElementById("sampleButton").addEventListener("click", () => {
-    transcriptInput.value = sampleTranscript;
-    transcriptInput.focus();
-    showStatus("Sample transcript loaded. Tap Find Highlights to test the connection.", "info");
-  });
-
-  document.getElementById("clearButton").addEventListener("click", () => {
-    transcriptInput.value = "";
-    resultsList.replaceChildren();
-    resultsSection.hidden = true;
-    statusBox.className = "status";
-    transcriptInput.focus();
-  });
-
-  form.addEventListener("submit", async event => {
-    event.preventDefault();
-
-    const transcript = transcriptInput.value.trim();
-
-    if (transcript.length < 20) {
-      showStatus("Please enter a transcript with at least 20 characters.", "error");
-      return;
-    }
-
-    if (transcript.length > 100000) {
-      showStatus("Your transcript is too long. Maximum length is 100,000 characters.", "error");
-      return;
-    }
-
-    submitButton.disabled = true;
-    submitButton.textContent = "Finding highlights…";
-    resultsSection.hidden = true;
-    showStatus("Connecting to ClipForge AI. The service may take a moment to wake up.", "info");
-
-    try {
-      const response = await fetch(API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        body: JSON.stringify({ transcript })
+        highlightList.appendChild(card);
       });
 
-      let data;
+      results.classList.remove("hidden");
+    }
+
+    async function analyzeTranscript() {
+      const transcript = transcriptInput.value.trim();
+
+      if (transcript.length < 20) {
+        setStatus("Please enter at least 20 characters of transcript text.", "error");
+        transcriptInput.focus();
+        return;
+      }
+
+      analyzeBtn.disabled = true;
+      analyzeBtn.textContent = "Analyzing…";
+      setStatus("Connecting to the ClipForge AI backend…");
+      results.classList.add("hidden");
+
       try {
-        data = await response.json();
-      } catch {
-        throw new Error(`The server returned an unreadable response (HTTP ${response.status}).`);
-      }
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify({ transcript })
+        });
 
-      if (!response.ok) {
-        let detail = data.detail || data.message || `HTTP ${response.status}`;
-        if (Array.isArray(detail)) {
-          detail = detail.map(item => item.msg || JSON.stringify(item)).join("; ");
+        const rawBody = await response.text();
+        let data;
+
+        try {
+          data = JSON.parse(rawBody);
+        } catch {
+          throw new Error(
+            `The server returned an unexpected response (HTTP ${response.status}).`
+          );
         }
-        throw new Error(String(detail));
-      }
 
-      if (!Array.isArray(data.highlights)) {
-        throw new Error("The server response did not contain a highlights list.");
-      }
+        if (!response.ok) {
+          const detail = Array.isArray(data.detail)
+            ? data.detail.map((item) => item.msg || "Invalid input").join("; ")
+            : (data.detail || data.message || "Request failed");
 
-      renderResults(data);
-      showStatus(`Success! Received ${data.count ?? data.highlights.length} suggested highlight(s).`, "success");
-    } catch (error) {
-      console.error("ClipForge request failed:", error);
+          throw new Error(`HTTP ${response.status}: ${detail}`);
+        }
 
-      if (error instanceof TypeError) {
-        showStatus(
-          "Could not reach the API from this website. Check that the Render service is online and that CORS allows https://machdollar.github.io. If you just changed CORS, wait for Render to finish redeploying and refresh this page.",
+        renderHighlights(data);
+        setStatus(
+          data.message || "Highlights received successfully.",
+          "success"
+        );
+      } catch (error) {
+        console.error("ClipForge request failed:", error);
+        setStatus(
+          "Could not analyze the transcript. " +
+          (error.message || "Check your connection and try again.") +
+          " If this continues, check the backend health page and CORS settings.",
           "error"
         );
-      } else {
-        showStatus(`Could not generate highlights: ${error.message}`, "error");
+      } finally {
+        analyzeBtn.disabled = false;
+        analyzeBtn.textContent = "Find highlights →";
       }
-    } finally {
-      submitButton.disabled = false;
-      submitButton.textContent = "✦ Find Highlights";
     }
-  });
-</script>
+
+    sampleBtn.addEventListener("click", () => {
+      transcriptInput.value = sample;
+      setStatus("Sample loaded. Tap Find highlights to test the connection.");
+    });
+
+    clearBtn.addEventListener("click", () => {
+      transcriptInput.value = "";
+      highlightList.replaceChildren();
+      results.classList.add("hidden");
+      setStatus("Transcript cleared.");
+      transcriptInput.focus();
+    });
+
+    analyzeBtn.addEventListener("click", analyzeTranscript);
+  </script>
 </body>
 </html>
