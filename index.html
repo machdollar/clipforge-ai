@@ -4,323 +4,570 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#2563eb">
+<meta name="description" content="ClipForge AI helps creators discover short-video moments from transcripts.">
 <title>ClipForge AI — Smart Clip Studio</title>
 <style>
-:root{--blue:#2563eb;--dark:#1d4ed8;--pale:#eff6ff;--bg:#f5f8ff;--text:#172033;--muted:#64748b;--border:#dbe5f3}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif}
-.container{max-width:900px;margin:auto;padding:20px 14px 40px}
-header{display:flex;align-items:center;gap:12px;margin-bottom:28px}
-.logo{display:grid;place-items:center;background:var(--blue);color:white;width:45px;height:45px;border-radius:14px;font-size:24px;font-weight:900}
-h1{font-size:21px;margin:0}header p{margin:3px 0;color:var(--muted);font-size:13px}
-.hero{text-align:center;margin-bottom:25px}
-.pill{display:inline-block;padding:7px 12px;background:var(--pale);color:var(--dark);border:1px solid #bfdbfe;border-radius:30px;font-size:12px;font-weight:700}
-.hero h2{font-size:clamp(32px,7vw,48px);line-height:1.1;letter-spacing:-1px;margin:17px 0 12px}
-.blue{color:var(--blue)}.hero p{color:var(--muted);line-height:1.7;max-width:620px;margin:auto}
-.panel,.clip{background:white;border:1px solid var(--border);border-radius:17px;padding:18px;margin-top:15px;box-shadow:0 6px 25px #1e40af08}
-h3{margin-top:0}.help,.muted{color:var(--muted);font-size:13px;line-height:1.6}
-textarea,input{width:100%;padding:13px;border:1px solid #cbd5e1;border-radius:11px;font:inherit;background:white;color:var(--text)}
-textarea{min-height:210px;resize:vertical;line-height:1.7}
-button{border:1px solid var(--border);background:white;color:var(--text);padding:11px 14px;border-radius:10px;font:inherit;font-size:14px;font-weight:650;cursor:pointer}
-button:disabled{opacity:.6}.primary{background:var(--blue);color:white;border-color:var(--blue)}
-.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-.actions .primary{flex:1}
-.status{padding:11px;background:#f1f5f9;border-radius:10px;font-size:13px;line-height:1.6;margin-top:12px;overflow-wrap:anywhere}
-.error{background:#fef2f2;color:#b91c1c}.success{background:#f0fdf4;color:#166534}
-.hidden{display:none!important}
-.results{margin-top:26px}.clip{padding:15px}
-.clip-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
-.clip-head h3{font-size:16px;line-height:1.5;margin:0}
-.time,.tag{display:inline-block;background:var(--pale);color:var(--dark);padding:6px 9px;border-radius:8px;font-size:12px;font-weight:700}
-.tags{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0}
-.tag{border:1px solid #bfdbfe;font-weight:500}
-.reason,.excerpt{font-size:13px;line-height:1.7;overflow-wrap:anywhere}
-.reason{color:var(--muted)}.excerpt{border-top:1px solid #e2e8f0;padding-top:10px}
-.track{height:7px;border-radius:9px;background:#e2e8f0;overflow:hidden;margin-top:8px}
-.fill{height:100%;background:var(--blue)}
-.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:14px 0}
-.stat{padding:11px;background:#f8fbff;border:1px solid var(--border);border-radius:11px}
-.stat strong{display:block;font-size:20px;color:var(--dark)}.stat span{font-size:11px;color:var(--muted)}
-ol{padding-left:22px;line-height:1.7}li+li{margin-top:8px}
-footer{text-align:center;color:var(--muted);font-size:12px;line-height:1.7;margin-top:28px}
-@media(max-width:500px){.container{padding:14px 10px}.panel{padding:14px}.clip-head{flex-direction:column}.actions button{width:100%}}
+:root {
+  --blue:#2563eb; --blue-dark:#1d4ed8; --pale:#eff6ff;
+  --bg:#f5f8ff; --text:#172033; --muted:#64748b;
+  --border:#dbe5f3; --white:#fff; --green:#15803d; --red:#b91c1c;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+button,input,textarea,select { font:inherit; }
+button { cursor:pointer; }
+button:disabled { opacity:.6; cursor:wait; }
+.container { max-width:1000px; margin:auto; padding:18px 14px 50px; }
+header { display:flex; align-items:center; gap:12px; margin-bottom:22px; }
+.logo {
+  width:46px; height:46px; border-radius:14px; display:grid;
+  place-items:center; color:white; background:var(--blue);
+  font-size:24px; font-weight:900;
+}
+header h1 { font-size:21px; margin:0; }
+header p { margin:3px 0 0; color:var(--muted); font-size:13px; }
+.hero { text-align:center; padding:18px 4px 26px; }
+.pill {
+  display:inline-block; border:1px solid #bfdbfe; border-radius:30px;
+  padding:7px 12px; color:var(--blue-dark); background:var(--pale);
+  font-size:12px; font-weight:750;
+}
+.hero h2 { font-size:clamp(32px,7vw,52px); line-height:1.08; letter-spacing:-1.4px; margin:17px 0 12px; }
+.blue { color:var(--blue); }
+.hero p { color:var(--muted); max-width:660px; line-height:1.7; margin:0 auto; }
+.steps { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; margin:14px 0 20px; }
+.step {
+  background:white; border:1px solid var(--border); border-radius:12px;
+  padding:12px 7px; text-align:center; color:var(--muted); font-size:12px;
+  font-weight:700;
+}
+.step b { display:block; color:var(--blue); font-size:18px; margin-bottom:3px; }
+.step.active { border-color:var(--blue); background:var(--pale); color:var(--blue-dark); }
+.panel {
+  background:white; border:1px solid var(--border); border-radius:17px;
+  padding:18px; margin-top:14px; box-shadow:0 6px 24px #1e40af08;
+}
+.panel h3 { margin:0 0 8px; font-size:19px; }
+.panel h4 { margin:0 0 8px; }
+.help,.muted { color:var(--muted); font-size:13px; line-height:1.65; }
+label { display:block; font-size:13px; font-weight:750; margin:13px 0 7px; }
+input,textarea,select {
+  width:100%; border:1px solid #cbd5e1; border-radius:11px;
+  padding:12px; background:white; color:var(--text);
+}
+textarea { min-height:190px; resize:vertical; line-height:1.65; }
+.actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+button {
+  border:1px solid var(--border); border-radius:10px; padding:11px 14px;
+  background:white; color:var(--text); font-size:13px; font-weight:750;
+}
+button.primary { background:var(--blue); color:white; border-color:var(--blue); }
+button.primary:hover { background:var(--blue-dark); }
+button.soft { background:var(--pale); color:var(--blue-dark); border-color:#bfdbfe; }
+.status {
+  margin-top:12px; padding:11px 12px; border-radius:10px;
+  background:#f1f5f9; font-size:13px; line-height:1.6;
+  overflow-wrap:anywhere; white-space:pre-wrap;
+}
+.status.success { background:#f0fdf4; color:#166534; }
+.status.error { background:#fef2f2; color:var(--red); }
+.hidden { display:none !important; }
+.results { margin-top:14px; display:grid; gap:12px; }
+.clip {
+  border:1px solid var(--border); border-radius:14px;
+  padding:15px; background:white;
+}
+.clip-top { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+.clip h4 { margin:0 0 7px; line-height:1.45; overflow-wrap:anywhere; }
+.time {
+  display:inline-block; border-radius:8px; padding:5px 8px;
+  color:var(--blue-dark); background:var(--pale); font-size:12px;
+  font-weight:800; white-space:nowrap;
+}
+.excerpt { color:#334155; font-size:14px; line-height:1.7; margin:10px 0; }
+.tag {
+  display:inline-block; margin:3px 4px 0 0; padding:4px 7px;
+  border-radius:7px; background:#f1f5f9; color:#475569; font-size:11px;
+}
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.result-text {
+  background:#f8fafc; border:1px solid var(--border); padding:12px;
+  border-radius:10px; white-space:pre-wrap; overflow-wrap:anywhere;
+  line-height:1.7; font-size:14px;
+}
+footer { text-align:center; color:var(--muted); font-size:12px; padding:28px 8px 0; }
+a { color:var(--blue-dark); }
+@media(max-width:650px) {
+  .steps { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .steps .step:last-child { grid-column:span 2; }
+  .grid2 { grid-template-columns:1fr; }
+  .panel { padding:14px; }
+  .clip-top { flex-direction:column; }
+}
 </style>
 </head>
 <body>
-<main class="container">
-<header>
-<div class="logo">C</div>
-<div><h1>ClipForge AI</h1><p>Your transcript-to-shorts assistant</p></div>
-</header>
+<div class="container">
+  <header>
+    <div class="logo">C</div>
+    <div>
+      <h1>ClipForge AI</h1>
+      <p>Smart Clip Studio · Free transcript tools</p>
+    </div>
+  </header>
 
-<section class="hero">
-<span class="pill">✦ Smart Clip Studio</span>
-<h2>Turn long videos into<br><span class="blue">shareable moments.</span></h2>
-<p>Discover clip candidates, summarize transcripts and compare engagement signals. Transcript tools work without paid AI API credits.</p>
-</section>
+  <section class="hero">
+    <span class="pill">YOUR CREATOR WORKSPACE</span>
+    <h2>Turn long videos into<br><span class="blue">shareable moments.</span></h2>
+    <p>Find potential short-video moments, prepare editing plans, discover key topics, and create publishing text from your transcript.</p>
+  </section>
 
-<section class="panel">
-<h3>1. Import a YouTube transcript</h3>
-<p class="help">Automatic importing may fail if YouTube blocks access. You can always paste a transcript manually below.</p>
-<input id="youtubeUrl" type="url" placeholder="Paste YouTube video URL">
-<div class="actions"><button class="primary" id="importBtn">Import transcript →</button></div>
-<div class="status" id="importStatus" role="status">Ready to try importing.</div>
-</section>
+  <nav class="steps" aria-label="Workflow stages">
+    <div class="step active" data-step="1"><b>01</b>Smart clipping</div>
+    <div class="step" data-step="2"><b>02</b>Edit planner</div>
+    <div class="step" data-step="3"><b>03</b>Insights</div>
+    <div class="step" data-step="4"><b>04</b>Creator tools</div>
+    <div class="step" data-step="5"><b>05</b>Integration</div>
+  </nav>
 
-<section class="panel">
-<h3>2. Paste your transcript</h3>
-<p class="help">Use timestamps like 0:15, 1:20 or 01:02:10. The clip finder uses your existing Render backend. Summaries are generated locally in your browser.</p>
-<textarea id="transcript" maxlength="100000" placeholder="0:05 Welcome back to the show.&#10;0:15 Here is the biggest mistake beginners make.&#10;0:30 This simple lesson changed everything."></textarea>
-<div class="actions">
-<button id="sampleBtn">Load sample</button>
-<button id="clearBtn">Clear</button>
-<button id="summaryBtn">Summarize</button>
-<button class="primary" id="analyzeBtn">Find clips + scores →</button>
+  <section class="panel" id="stage1">
+    <h3>Stage 1 — Find engaging moments</h3>
+    <p class="help">Paste a timestamped transcript for the most reliable results. You can also try importing YouTube captions; some videos cannot be accessed automatically.</p>
+    <label for="youtubeUrl">YouTube video URL (optional)</label>
+    <input id="youtubeUrl" type="url" placeholder="https://www.youtube.com/watch?v=...">
+    <div class="actions">
+      <button class="soft" id="importBtn">Try importing captions</button>
+    </div>
+    <label for="transcript">Video transcript with timestamps</label>
+    <textarea id="transcript" placeholder="00:00:01 Hello, welcome back...
+00:00:15 Today I want to explain the biggest mistake...
+00:00:30 Here is what worked for us..."></textarea>
+    <div class="actions">
+      <button class="primary" id="analyzeBtn">Find my best moments</button>
+      <button id="clearBtn">Clear</button>
+    </div>
+    <div id="stage1Status" class="status" role="status">Ready. Add a timestamped transcript to begin.</div>
+    <div id="clipResults" class="results"></div>
+  </section>
+
+  <section class="panel" id="stage2">
+    <h3>Stage 2 — Prepare a clip edit</h3>
+    <p class="help">Select a suggested moment above or enter your own start and end times. This prepares an editing plan; it does not render or download an MP4.</p>
+    <div class="grid2">
+      <div>
+        <label for="clipStart">Start time in seconds</label>
+        <input id="clipStart" type="number" min="0" step="0.1" value="0">
+      </div>
+      <div>
+        <label for="clipEnd">End time in seconds</label>
+        <input id="clipEnd" type="number" min="0.1" step="0.1" value="25">
+      </div>
+      <div>
+        <label for="aspect">Output aspect ratio</label>
+        <select id="aspect">
+          <option value="9:16">9:16 — Vertical Shorts/Reels</option>
+          <option value="16:9">16:9 — Landscape</option>
+          <option value="1:1">1:1 — Square</option>
+        </select>
+      </div>
+      <div>
+        <label>Editing options</label>
+        <p><input id="captions" type="checkbox" checked style="width:auto"> Add captions in export plan</p>
+        <p><input id="cropVertical" type="checkbox" checked style="width:auto"> Crop to selected ratio</p>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="primary" id="planBtn">Create editing plan</button>
+      <button id="downloadPlanBtn">Download plan JSON</button>
+    </div>
+    <div id="stage2Status" class="status" role="status">Choose a clip range to prepare an editing plan.</div>
+    <div id="planOutput" class="result-text hidden"></div>
+  </section>
+
+  <section class="panel" id="stage3">
+    <h3>Stage 3 — Transcript intelligence</h3>
+    <p class="help">Find frequently used meaningful words and potentially memorable transcript lines. Results are generated locally from the text, not by a paid AI service.</p>
+    <div class="actions">
+      <button class="primary" id="insightsBtn">Analyze topics and quotes</button>
+    </div>
+    <div id="stage3Status" class="status" role="status">Analyze the transcript to see insights.</div>
+    <div id="insightsOutput" class="results"></div>
+  </section>
+
+  <section class="panel" id="stage4">
+    <h3>Stage 4 — Creator publishing tools</h3>
+    <p class="help">Generate draft titles, a description, hashtags, and thumbnail text from your transcript. Review everything before publishing.</p>
+    <label for="platform">Target platform</label>
+    <select id="platform">
+      <option>YouTube Shorts</option>
+      <option>Instagram Reels</option>
+      <option>TikTok</option>
+      <option>Facebook Reels</option>
+    </select>
+    <div class="actions">
+      <button class="primary" id="creatorBtn">Generate creator text</button>
+    </div>
+    <div id="stage4Status" class="status" role="status">Creator tools are ready.</div>
+    <div id="creatorOutput" class="results"></div>
+  </section>
+
+  <section class="panel" id="stage5">
+    <h3>Stage 5 — Connect and check</h3>
+    <p class="help">This is the deployed Python backend used by the other stages. If the status check fails, inspect your Render deployment and service logs.</p>
+    <label for="apiUrl">Backend URL</label>
+    <input id="apiUrl" type="url" value="https://clipforge-ai-p7mk.onrender.com">
+    <div class="actions">
+      <button class="primary" id="healthBtn">Check backend</button>
+      <button id="docsBtn">Open API documentation</button>
+    </div>
+    <div id="stage5Status" class="status" role="status">Backend has not been checked yet.</div>
+    <p class="help">No OpenAI key is stored in this page. Never paste a private API key into this website or into public GitHub code.</p>
+  </section>
+
+  <footer>
+    ClipForge AI · Local rule-based scoring · Always verify clip timestamps against the original video.
+  </footer>
 </div>
-<div class="status" id="status" role="status">Paste a transcript to get started.</div>
-</section>
-
-<section class="panel hidden" id="summaryPanel">
-<h3>Transcript summary</h3>
-<div id="summaryContent"></div>
-<div class="actions"><button id="copySummaryBtn">Copy summary</button></div>
-</section>
-
-<section class="results hidden" id="results" aria-live="polite">
-<h2>Suggested clips</h2>
-<p class="muted" id="resultInfo"></p>
-<div id="clipList"></div>
-</section>
-
-<footer>
-<strong>ClipForge AI</strong> · Smart Clip Studio
-<p>Scores are estimates based on transcript wording, not predictions of views. This version suggests timestamps but does not yet render finished video files. Summaries and topic detection use local rules, not a full AI model.</p>
-</footer>
-</main>
 
 <script>
-"use strict";
-const API="https://clipforge-ai-p7mk.onrender.com";
-const $=id=>document.getElementById(id);
-const transcript=$("transcript");
-let lastSummary="";
+(() => {
+  "use strict";
 
-function status(message,type=""){
-  $("status").textContent=message;
-  $("status").className="status"+(type?" "+type:"");
-}
-function add(parent,tag,className,text){
-  const el=document.createElement(tag);
-  if(className)el.className=className;
-  if(text!==undefined)el.textContent=text;
-  parent.appendChild(el);
-  return el;
-}
-function formatTime(value){
-  const n=Math.max(0,Math.floor(Number(value)||0));
-  const h=Math.floor(n/3600),m=Math.floor(n%3600/60),s=n%60;
-  return h
-    ? `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`
-    : `${m}:${String(s).padStart(2,"0")}`;
-}
-async function post(endpoint,body){
-  const response=await fetch(API+endpoint,{
-    method:"POST",
-    headers:{"Content-Type":"application/json","Accept":"application/json"},
-    body:JSON.stringify(body)
-  });
-  let data;
-  try{data=await response.json()}catch{throw Error("Unexpected server response.")}
-  if(!response.ok){
-    const detail=data.detail||data.message||"Request failed.";
-    throw Error(typeof detail==="string"?detail:JSON.stringify(detail));
+  const $ = id => document.getElementById(id);
+  let highlights = [];
+  let currentPlan = null;
+  let lastCreatorResult = null;
+  let lastInsightsResult = null;
+
+  function apiBase() {
+    return $("apiUrl").value.trim().replace(/\/+$/, "");
   }
-  return data;
-}
-async function copyText(text){
-  if(navigator.clipboard&&window.isSecureContext){
-    await navigator.clipboard.writeText(text);return;
+
+  function setStatus(id, message, type = "") {
+    const node = $(id);
+    node.textContent = message;
+    node.className = "status" + (type ? " " + type : "");
   }
-  const box=document.createElement("textarea");
-  box.value=text;box.style.position="fixed";box.style.opacity="0";
-  document.body.appendChild(box);box.select();
-  const ok=document.execCommand("copy");box.remove();
-  if(!ok)throw Error("Copy is not available in this browser.");
-}
 
-function renderClips(data){
-  const list=$("clipList");
-  list.replaceChildren();
-  const items=Array.isArray(data.highlights)?data.highlights:[];
-  const scores=items.map(x=>Number(x.score)).filter(Number.isFinite).sort((a,b)=>a-b);
-  $("resultInfo").textContent=
-    `${items.length} candidate clip(s) · ${data.mode||"Transcript analysis"}. Scores compare transcript signals, not guaranteed views.`;
+  function safeText(value) {
+    return String(value ?? "");
+  }
 
-  items.forEach((item,index)=>{
-    const card=add(list,"article","clip","");
-    const head=add(card,"div","clip-head","");
-    add(head,"h3","",`${index+1}. ${item.title||"Suggested highlight"}`);
-    const start=Number(item.start_seconds)||0;
-    const end=Number(item.end_seconds)||start;
-    add(head,"span","time",`${item.timestamp||formatTime(start)} – ${item.end_timestamp||formatTime(end)}`);
-
-    const tags=add(card,"div","tags","");
-    add(tags,"span","tag",`Duration: ${item.duration_seconds??Math.round(end-start)} sec`);
-
-    if(item.score!==undefined&&item.score!==null){
-      const score=Number(item.score);
-      const rank=scores.length>1
-        ?Math.round(scores.filter(x=>x<=score).length/scores.length*100):50;
-      const label=rank>=75?"Stronger relative signal":rank>=40?"Middle relative signal":"Lower relative signal";
-      add(tags,"span","tag",`Signal score: ${item.score} · ${label}`);
-      const track=add(card,"div","track","");
-      const fill=add(track,"div","fill","");
-      fill.style.width=rank+"%";
+  async function requestJson(path, body) {
+    const response = await fetch(apiBase() + path, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(body)
+    });
+    let data;
+    try {
+      data = await response.json();
+    } catch {
+      throw new Error("The server returned an unreadable response.");
     }
-    if(item.reason)add(card,"p","reason",item.reason);
-    if(item.excerpt)add(card,"p","excerpt",item.excerpt);
+    if (!response.ok) {
+      const detail = data.detail || data.message || "Request failed.";
+      throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+    }
+    return data;
+  }
 
-    const btn=add(card,"button","","Copy clip details");
-    btn.type="button";
-    btn.addEventListener("click",async()=>{
-      try{
-        await copyText(
-          `ClipForge AI\nTitle: ${item.title||"Suggested highlight"}\nStart: ${formatTime(start)}\nEnd: ${formatTime(end)}\nDuration: ${item.duration_seconds??end-start} seconds\nSignal score: ${item.score??"N/A"}\nReason: ${item.reason||""}\nExcerpt: ${item.excerpt||""}`
-        );
-        status("Clip details copied.","success");
-      }catch(e){status(e.message,"error")}
+  async function requestGet(path) {
+    const response = await fetch(apiBase() + path);
+    let data;
+    try {
+      data = await response.json();
+    } catch {
+      throw new Error("The server returned an unreadable response.");
+    }
+    if (!response.ok) {
+      throw new Error(data.detail || "Request failed.");
+    }
+    return data;
+  }
+
+  function makeElement(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = safeText(text);
+    return node;
+  }
+
+  function showHighlights(data) {
+    highlights = Array.isArray(data.highlights) ? data.highlights : [];
+    const root = $("clipResults");
+    root.replaceChildren();
+
+    if (!highlights.length) {
+      root.append(makeElement("p", "help", "No highlights were returned."));
+      return;
+    }
+
+    highlights.forEach((clip, index) => {
+      const card = makeElement("article", "clip");
+      const top = makeElement("div", "clip-top");
+      const heading = makeElement("div");
+      heading.append(makeElement("h4", "", `${index + 1}. ${clip.title || "Potential clip"}`));
+      heading.append(makeElement(
+        "span", "time",
+        `${clip.timestamp || "—"} → ${clip.end_timestamp || "—"} · ${clip.duration_seconds ?? "?"} sec`
+      ));
+      top.append(heading);
+      top.append(makeElement("span", "tag", `Score ${clip.score ?? "—"}`));
+      card.append(top);
+      card.append(makeElement("p", "excerpt", clip.excerpt || ""));
+      card.append(makeElement("p", "help", clip.reason || "Suggested from transcript text."));
+
+      const actions = makeElement("div", "actions");
+      const selectButton = makeElement("button", "soft", "Use this clip in Stage 2");
+      selectButton.type = "button";
+      selectButton.addEventListener("click", () => {
+        $("clipStart").value = Number(clip.start_seconds || 0);
+        $("clipEnd").value = Number(clip.end_seconds || 0);
+        $("stage2").scrollIntoView({behavior:"smooth", block:"start"});
+        document.querySelectorAll(".step").forEach(n => n.classList.toggle("active", n.dataset.step === "2"));
+      });
+      actions.append(selectButton);
+
+      const copyButton = makeElement("button", "", "Copy timestamps");
+      copyButton.type = "button";
+      copyButton.addEventListener("click", async () => {
+        await copyText(`${clip.timestamp} - ${clip.end_timestamp}\n${clip.excerpt || ""}`);
+        copyButton.textContent = "Copied";
+      });
+      actions.append(copyButton);
+      card.append(actions);
+      root.append(card);
+    });
+  }
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const box = document.createElement("textarea");
+      box.value = text;
+      document.body.append(box);
+      box.select();
+      document.execCommand("copy");
+      box.remove();
+    }
+  }
+
+  $("analyzeBtn").addEventListener("click", async () => {
+    const transcript = $("transcript").value.trim();
+    if (transcript.length < 20) {
+      setStatus("stage1Status", "Paste a transcript of at least 20 characters.", "error");
+      return;
+    }
+    const button = $("analyzeBtn");
+    button.disabled = true;
+    setStatus("stage1Status", "Analyzing transcript with local scoring…");
+    try {
+      const data = await requestJson("/transcript-highlights", {transcript});
+      showHighlights(data);
+      setStatus(
+        "stage1Status",
+        `Found ${data.count} potential moments from ${data.transcript_segments} timestamped segments. ${data.message || ""}`,
+        "success"
+      );
+    } catch (error) {
+      setStatus("stage1Status", error.message, "error");
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  $("importBtn").addEventListener("click", async () => {
+    const url = $("youtubeUrl").value.trim();
+    if (!url) {
+      setStatus("stage1Status", "Enter a YouTube URL first.", "error");
+      return;
+    }
+    const button = $("importBtn");
+    button.disabled = true;
+    setStatus("stage1Status", "Trying to retrieve captions. Some videos block automatic access…");
+    try {
+      const data = await requestJson("/youtube-transcript-highlights", {url});
+      if (data.transcript) $("transcript").value = data.transcript;
+      showHighlights(data);
+      setStatus(
+        "stage1Status",
+        `Caption request succeeded. ${data.count} moments returned. If the transcript box is empty, continue with the suggestions or paste a transcript manually.`,
+        "success"
+      );
+    } catch (error) {
+      setStatus(
+        "stage1Status",
+        error.message + "\nYou can still paste the transcript manually.",
+        "error"
+      );
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  $("clearBtn").addEventListener("click", () => {
+    $("transcript").value = "";
+    $("youtubeUrl").value = "";
+    highlights = [];
+    $("clipResults").replaceChildren();
+    setStatus("stage1Status", "Cleared. Paste a new timestamped transcript.");
+  });
+
+  $("planBtn").addEventListener("click", async () => {
+    const start = Number($("clipStart").value);
+    const end = Number($("clipEnd").value);
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+      setStatus("stage2Status", "Enter valid start and end times. End must be later than start.", "error");
+      return;
+    }
+    setStatus("stage2Status", "Preparing editing plan…");
+    try {
+      currentPlan = await requestJson("/video-edit-plan", {
+        start_seconds: start,
+        end_seconds: end,
+        aspect_ratio: $("aspect").value,
+        captions: $("captions").checked,
+        crop_to_vertical: $("cropVertical").checked
+      });
+      $("planOutput").classList.remove("hidden");
+      $("planOutput").textContent = JSON.stringify(currentPlan, null, 2);
+      setStatus("stage2Status", currentPlan.message, "success");
+    } catch (error) {
+      setStatus("stage2Status", error.message, "error");
+    }
+  });
+
+  $("downloadPlanBtn").addEventListener("click", () => {
+    if (!currentPlan) {
+      setStatus("stage2Status", "Create an editing plan first.", "error");
+      return;
+    }
+    const blob = new Blob([JSON.stringify(currentPlan, null, 2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "clipforge-edit-plan.json";
+    link.click();
+    URL.revokeObjectURL(url);
+    setStatus("stage2Status", "Editing plan JSON download requested.", "success");
+  });
+
+  $("insightsBtn").addEventListener("click", async () => {
+    const transcript = $("transcript").value.trim();
+    if (transcript.length < 20) {
+      setStatus("stage3Status", "Paste a transcript in Stage 1 first.", "error");
+      return;
+    }
+    setStatus("stage3Status", "Analyzing topics and quotes…");
+    try {
+      lastInsightsResult = await requestJson("/transcript-insights", {transcript});
+      const root = $("insightsOutput");
+      root.replaceChildren();
+
+      const keywordCard = makeElement("div", "clip");
+      keywordCard.append(makeElement("h4", "", "Frequently used keywords"));
+      const keywordLine = (lastInsightsResult.keywords || [])
+        .map(item => `${item.word} (${item.count})`).join(" · ");
+      keywordCard.append(makeElement("p", "excerpt", keywordLine || "No keywords found."));
+      root.append(keywordCard);
+
+      const quoteCard = makeElement("div", "clip");
+      quoteCard.append(makeElement("h4", "", "Potentially memorable lines"));
+      (lastInsightsResult.memorable_quotes || []).forEach(item => {
+        const p = makeElement("p", "excerpt", `${item.timestamp} — ${item.text}`);
+        quoteCard.append(p);
+      });
+      root.append(quoteCard);
+      setStatus(
+        "stage3Status",
+        `Analyzed ${lastInsightsResult.segment_count} timestamped segments. These are automated suggestions, not a guarantee of audience engagement.`,
+        "success"
+      );
+    } catch (error) {
+      setStatus("stage3Status", error.message, "error");
+    }
+  });
+
+  $("creatorBtn").addEventListener("click", async () => {
+    const transcript = $("transcript").value.trim();
+    if (transcript.length < 10) {
+      setStatus("stage4Status", "Paste a transcript in Stage 1 first.", "error");
+      return;
+    }
+    setStatus("stage4Status", "Preparing creator text…");
+    try {
+      lastCreatorResult = await requestJson("/creator-tools", {
+        transcript,
+        platform: $("platform").value
+      });
+      const root = $("creatorOutput");
+      root.replaceChildren();
+
+      function addCopyBlock(title, value) {
+        const card = makeElement("div", "clip");
+        const top = makeElement("div", "clip-top");
+        top.append(makeElement("h4", "", title));
+        const copy = makeElement("button", "soft", "Copy");
+        copy.type = "button";
+        copy.addEventListener("click", async () => {
+          await copyText(value);
+          copy.textContent = "Copied";
+        });
+        top.append(copy);
+        card.append(top);
+        card.append(makeElement("div", "result-text", value));
+        root.append(card);
+      }
+
+      addCopyBlock("Title ideas", (lastCreatorResult.titles || []).join("\n"));
+      addCopyBlock("Description", lastCreatorResult.description || "");
+      addCopyBlock("Hashtags", (lastCreatorResult.hashtags || []).join(" "));
+      addCopyBlock("Thumbnail text", lastCreatorResult.thumbnail_text || "");
+      addCopyBlock("Quote ideas", (lastCreatorResult.quote_ideas || []).join("\n\n"));
+      setStatus("stage4Status", lastCreatorResult.note || "Creator text ready.", "success");
+    } catch (error) {
+      setStatus("stage4Status", error.message, "error");
+    }
+  });
+
+  $("healthBtn").addEventListener("click", async () => {
+    setStatus("stage5Status", "Checking backend…");
+    try {
+      const data = await requestGet("/health");
+      setStatus(
+        "stage5Status",
+        `Backend status: ${data.status}\nVersion: ${data.version}\nMode: ${data.mode}`,
+        "success"
+      );
+    } catch (error) {
+      setStatus(
+        "stage5Status",
+        error.message + "\nCheck the backend URL, Render deployment, and service logs.",
+        "error"
+      );
+    }
+  });
+
+  $("docsBtn").addEventListener("click", () => {
+    const url = apiBase() + "/docs";
+    window.open(url, "_blank", "noopener,noreferrer");
+  });
+
+  document.querySelectorAll(".step").forEach(step => {
+    step.addEventListener("click", () => {
+      const id = "stage" + step.dataset.step;
+      $(id).scrollIntoView({behavior:"smooth", block:"start"});
+      document.querySelectorAll(".step").forEach(item => {
+        item.classList.toggle("active", item === step);
+      });
     });
   });
-  $("results").classList.remove("hidden");
-  $("results").scrollIntoView({behavior:"smooth",block:"start"});
-}
-
-function cleanTranscript(raw){
-  return raw.split(/\r?\n/)
-    .map(line=>line.replace(/^\s*(?:\[[^\]]+\]\s*)?(?:\d{1,3}:)?\d{1,4}:\d{2}(?::\d{2})?(?:\.\d+)?\s*(?:[-–—|]\s*)?/,"").trim())
-    .filter(Boolean).join(" ").replace(/\s+/g," ").trim();
-}
-
-function summarizeTranscript(){
-  const raw=transcript.value.trim();
-  if(raw.length<20){status("Paste a transcript first.","error");return;}
-
-  const clean=cleanTranscript(raw);
-  const words=clean.toLowerCase().match(/[a-z0-9']+/g)||[];
-  const ignored=new Set(("the and for that with this from have your you are was were but not they their them then than into about just like what when where which who will would could should there here its can our out all has had she him her his how why").split(" "));
-  const frequency={};
-
-  words.forEach(word=>{
-    if(word.length>3&&!ignored.has(word)){
-      frequency[word]=(frequency[word]||0)+1;
-    }
-  });
-
-  const topics=Object.entries(frequency)
-    .filter(([,count])=>count>=2)
-    .sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))
-    .slice(0,6).map(([word])=>word);
-
-  const sentences=clean.split(/(?<=[.!?])\s+/)
-    .map(s=>s.trim()).filter(s=>s.length>=30);
-
-  const ranked=sentences.map((sentence,index)=>{
-    const tokens=sentence.toLowerCase().match(/[a-z0-9']+/g)||[];
-    const unique=new Set(tokens);
-    let score=Math.min(tokens.length,28)*0.08;
-    topics.forEach(topic=>{if(unique.has(topic))score+=1.8});
-    if(/[!?]/.test(sentence))score+=0.5;
-    if(/\b(because|lesson|mistake|important|secret|problem|solution|learn|remember|changed|best|worst|should|need to)\b/i.test(sentence))score+=1.1;
-    return{sentence,index,score};
-  }).sort((a,b)=>b.score-a.score||a.index-b.index);
-
-  const picks=ranked.slice(0,4).sort((a,b)=>a.index-b.index);
-  const summary=picks.length
-    ?picks.map((x,i)=>`${i+1}. ${x.sentence}`).join("\n")
-    :(clean.length>500?clean.slice(0,500)+"…":clean);
-
-  const times=new Set([...raw.matchAll(/(?:^|\s)(\d{1,3}:\d{2}(?::\d{2})?)/g)].map(x=>x[1]));
-  const content=$("summaryContent");
-  content.replaceChildren();
-  const stats=add(content,"div","stats","");
-  [[words.length,"Words"],[times.size,"Timestamps"],[sentences.length,"Sentences"]].forEach(([value,label])=>{
-    const stat=add(stats,"div","stat","");
-    add(stat,"strong","",value.toLocaleString());
-    add(stat,"span","",label+" detected");
-  });
-  add(content,"h3","","Key takeaways");
-  const list=add(content,"ol","","");
-  summary.split("\n").forEach(line=>add(list,"li","",line.replace(/^\d+\.\s*/,"")));
-
-  if(topics.length){
-    add(content,"h3","","Repeated topics");
-    const chips=add(content,"div","tags","");
-    topics.forEach(topic=>add(chips,"span","tag",topic));
-  }
-
-  lastSummary="ClipForge AI — Transcript summary\n\n"+summary+
-    (topics.length?"\n\nRepeated topics: "+topics.join(", "):"")+
-    "\n\nNote: locally generated using text rules; review for accuracy.";
-  $("summaryPanel").classList.remove("hidden");
-  status("Summary generated locally. Review it for context and accuracy.","success");
-  $("summaryPanel").scrollIntoView({behavior:"smooth",block:"start"});
-}
-
-$("sampleBtn").addEventListener("click",()=>{
-  transcript.value=[
-    "0:05 Welcome back to the show. Today we are talking about what actually works.",
-    "0:15 The biggest mistake beginners make is trying to do everything at once.",
-    "0:28 The solution is to choose one clear goal and build a simple plan.",
-    "0:42 This surprising lesson changed the way I work because consistency matters.",
-    "0:58 Remember, small improvements can create powerful results over time."
-  ].join("\n");
-  status("Sample loaded. Try Summarize or Find clips + scores.");
-});
-$("clearBtn").addEventListener("click",()=>{
-  transcript.value="";
-  $("results").classList.add("hidden");
-  $("summaryPanel").classList.add("hidden");
-  $("clipList").replaceChildren();
-  $("summaryContent").replaceChildren();
-  lastSummary="";
-  status("Transcript cleared.");
-});
-$("summaryBtn").addEventListener("click",summarizeTranscript);
-$("copySummaryBtn").addEventListener("click",async()=>{
-  try{await copyText(lastSummary);status("Summary copied.","success")}
-  catch(e){status(e.message,"error")}
-});
-
-$("analyzeBtn").addEventListener("click",async()=>{
-  const text=transcript.value.trim();
-  if(text.length<20){status("Please paste a longer transcript first.","error");return}
-  const btn=$("analyzeBtn");
-  btn.disabled=true;btn.textContent="Analyzing…";
-  status("Finding candidate clips…");
-  try{
-    const data=await post("/transcript-highlights",{transcript:text});
-    renderClips(data);
-    status(data.message||"Analysis complete.","success");
-  }catch(e){status(e.message||"Could not analyze the transcript.","error")}
-  finally{btn.disabled=false;btn.textContent="Find clips + scores →"}
-});
-
-$("importBtn").addEventListener("click",async()=>{
-  const url=$("youtubeUrl").value.trim();
-  if(!url){$("importStatus").textContent="Paste a YouTube URL first.";return}
-  const btn=$("importBtn");
-  btn.disabled=true;btn.textContent="Importing…";
-  $("importStatus").textContent="Trying to retrieve captions…";
-  try{
-    const data=await post("/youtube-transcript-highlights",{url});
-    renderClips(data);
-    $("importStatus").textContent=data.message||"Transcript analyzed.";
-    $("importStatus").className="status success";
-  }catch(e){
-    $("importStatus").textContent=(e.message||"Could not import captions.")+" Paste the transcript manually below to continue.";
-    $("importStatus").className="status error";
-  }finally{btn.disabled=false;btn.textContent="Import transcript →"}
-});
+})();
 </script>
 </body>
 </html>
