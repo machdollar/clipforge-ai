@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101020">
   <title>ClipForge AI — Smart Video Highlights</title>
+
   <style>
     :root {
       color-scheme: dark;
@@ -25,12 +26,12 @@
       font-family: system-ui, -apple-system, sans-serif;
       color: var(--text);
       background:
-        radial-gradient(ellipse at top left, #30205d 0, transparent 42%),
-        radial-gradient(ellipse at top right, #12394b 0, transparent 36%),
+        radial-gradient(ellipse at top left, #30205d, transparent 42%),
+        radial-gradient(ellipse at top right, #12394b, transparent 36%),
         var(--bg);
     }
 
-    button, textarea { font: inherit; }
+    button, textarea, input { font: inherit; }
 
     .container {
       width: min(900px, 100%);
@@ -42,7 +43,7 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 46px;
+      margin-bottom: 40px;
     }
 
     .logo {
@@ -96,39 +97,40 @@
       padding: 22px;
       border: 1px solid var(--border);
       border-radius: 22px;
-      background: #19192deF;
+      background: #19192def;
       box-shadow: 0 22px 65px #0003;
     }
 
-    .section-title {
-      margin: 0 0 8px;
-      font-size: 19px;
-    }
+    .section-title { margin: 0 0 8px; font-size: 19px; }
 
     .help {
-      margin: 0 0 18px;
+      display: block;
+      margin: 0 0 10px;
       color: var(--muted);
       font-size: 13px;
       line-height: 1.6;
     }
 
-    textarea {
+    input, textarea {
       display: block;
       width: 100%;
-      min-height: 220px;
-      resize: vertical;
-      padding: 15px;
+      padding: 14px;
       border: 1px solid #42425e;
       border-radius: 14px;
       outline: none;
       color: var(--text);
       background: #101020;
-      line-height: 1.7;
     }
 
-    textarea:focus {
+    input:focus, textarea:focus {
       border-color: var(--purple);
       box-shadow: 0 0 0 3px #a78bfa22;
+    }
+
+    textarea {
+      min-height: 220px;
+      resize: vertical;
+      line-height: 1.7;
     }
 
     .actions {
@@ -231,7 +233,7 @@
 
     @media (max-width: 520px) {
       .container { padding: 18px 12px 38px; }
-      header { margin-bottom: 35px; }
+      header { margin-bottom: 32px; }
       .panel { padding: 16px; }
       .highlight-top { flex-direction: column; }
       .time { order: -1; }
@@ -239,6 +241,7 @@
     }
   </style>
 </head>
+
 <body>
   <main class="container">
     <header>
@@ -253,26 +256,55 @@
       <span class="pill">✦ Transcript Highlight Studio</span>
       <h2>Find the moments<br><span class="gradient">worth sharing.</span></h2>
       <p>
-        Paste a timestamped transcript and get suggested highlight moments.
-        Review the timestamps before editing your video.
+        Import an available YouTube transcript or paste your own
+        timestamped transcript to discover potential highlights.
       </p>
     </section>
 
     <section class="panel">
-      <h2 class="section-title">Your transcript</h2>
+      <h2 class="section-title">Import from YouTube</h2>
       <p class="help">
-        Put each timestamp and its spoken text on a separate line.
-        Examples: <code>0:15</code>, <code>1:20</code>, or
-        <code>01:02:10</code>. Paste at least 20 characters.
+        Paste a YouTube video URL. The video must have a transcript
+        that the server can access.
+      </p>
+
+      <label for="youtubeUrl" class="help">YouTube video URL</label>
+      <input
+        id="youtubeUrl"
+        type="url"
+        maxlength="2048"
+        placeholder="https://www.youtube.com/watch?v=..."
+        autocomplete="url"
+      >
+
+      <div class="actions">
+        <button type="button" class="primary" id="importYoutubeBtn">
+          Import YouTube transcript →
+        </button>
+      </div>
+
+      <div class="status" id="youtubeStatus" role="status" aria-live="polite">
+        Paste a YouTube URL to get started.
+      </div>
+    </section>
+
+    <section class="panel" style="margin-top:18px;">
+      <h2 class="section-title">Or paste a transcript</h2>
+      <p class="help">
+        Include timestamps such as 0:15, 1:20, or 01:02:10.
+        Each timestamp should be followed by the spoken text.
       </p>
 
       <label for="transcript" class="help">Timestamped transcript text</label>
-      <textarea id="transcript" maxlength="100000"
+      <textarea
+        id="transcript"
+        maxlength="100000"
         placeholder="0:05 Welcome to this video.
 0:15 Here is the biggest mistake beginners make.
 0:30 The solution is to start with a simple plan.
 0:45 This surprising result changed everything.
-1:00 Remember this important lesson."></textarea>
+1:00 Remember this important lesson."
+      ></textarea>
 
       <div class="actions">
         <button type="button" id="sampleBtn">Load sample</button>
@@ -283,7 +315,7 @@
       </div>
 
       <div id="status" class="status" role="status" aria-live="polite">
-        Ready. Paste a timestamped transcript to begin.
+        Ready. Paste a transcript to begin.
       </div>
     </section>
 
@@ -296,22 +328,23 @@
     <footer>
       <p>ClipForge AI · Powered by your Render backend</p>
       <p>
-        Suggestions are generated using text heuristics, not an external AI
-        API. They are not verified video cuts, and this page does not create
-        video files.
+        Highlight scores use local text rules. Results are suggestions,
+        not verified viral moments. This website does not create video files.
       </p>
     </footer>
   </main>
 
   <script>
-    const API_URL =
-      "https://clipforge-ai-p7mk.onrender.com/transcript-highlights";
+    const API_BASE = "https://clipforge-ai-p7mk.onrender.com";
 
     const transcriptInput = document.getElementById("transcript");
+    const youtubeUrl = document.getElementById("youtubeUrl");
+    const importYoutubeBtn = document.getElementById("importYoutubeBtn");
     const analyzeBtn = document.getElementById("analyzeBtn");
     const sampleBtn = document.getElementById("sampleBtn");
     const clearBtn = document.getElementById("clearBtn");
     const statusBox = document.getElementById("status");
+    const youtubeStatus = document.getElementById("youtubeStatus");
     const results = document.getElementById("results");
     const summary = document.getElementById("summary");
     const highlightList = document.getElementById("highlightList");
@@ -324,46 +357,49 @@
       "1:00 Remember this important lesson."
     ].join("\n");
 
-    function setStatus(message, type = "") {
-      statusBox.textContent = message;
-      statusBox.className = "status" + (type ? " " + type : "");
+    function setStatus(element, message, type = "") {
+      element.textContent = message;
+      element.className = "status" + (type ? " " + type : "");
     }
 
-    function formatTime(totalSeconds) {
-      const seconds = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+    function formatTime(value) {
+      const seconds = Math.max(0, Math.floor(Number(value) || 0));
       const hours = Math.floor(seconds / 3600);
       const minutes = Math.floor((seconds % 3600) / 60);
-      const remaining = seconds % 60;
+      const remainder = seconds % 60;
 
-      if (hours > 0) {
-        return [hours, minutes, remaining]
+      if (hours) {
+        return [hours, minutes, remainder]
           .map((n, i) => i === 0 ? String(n) : String(n).padStart(2, "0"))
           .join(":");
       }
 
-      return minutes + ":" + String(remaining).padStart(2, "0");
+      return minutes + ":" + String(remainder).padStart(2, "0");
     }
 
-    function addTextElement(parent, tag, className, text) {
+    function addText(parent, tag, className, value) {
       const element = document.createElement(tag);
       if (className) element.className = className;
-      element.textContent = text == null ? "" : String(text);
+      element.textContent = value == null ? "" : String(value);
       parent.appendChild(element);
       return element;
     }
 
     function renderHighlights(data) {
       highlightList.replaceChildren();
+
       const items = Array.isArray(data.highlights) ? data.highlights : [];
 
       summary.textContent =
-        `${items.length} suggestion(s) · Mode: ${data.mode || "unknown"}` +
+        `${items.length} suggestion(s) · ${data.mode || "Transcript analysis"}` +
         (data.skipped_lines ? ` · Skipped lines: ${data.skipped_lines}` : "");
 
-      if (items.length === 0) {
-        addTextElement(
-          highlightList, "p", "status",
-          data.message || "No highlights found. Check your timestamp format."
+      if (!items.length) {
+        addText(
+          highlightList,
+          "p",
+          "status",
+          data.message || "No highlights were found."
         );
       }
 
@@ -374,37 +410,44 @@
         const top = document.createElement("div");
         top.className = "highlight-top";
 
-        addTextElement(top, "h3", "", item.title || "Suggested highlight");
+        addText(top, "h3", "", item.title || "Suggested highlight");
 
-        const time = addTextElement(
-          top, "span", "time",
+        addText(
+          top,
+          "span",
+          "time",
           `${formatTime(item.start_seconds)} – ${formatTime(item.end_seconds)}`
         );
 
         card.appendChild(top);
 
         if (item.reason) {
-          addTextElement(card, "p", "reason", item.reason);
+          addText(card, "p", "reason", item.reason);
         }
 
-        if (item.transcript_excerpt) {
-          addTextElement(card, "p", "excerpt", item.transcript_excerpt);
+        if (item.excerpt) {
+          addText(card, "p", "excerpt", item.excerpt);
         }
 
-        const copyButton = addTextElement(
+        const copyButton = addText(
           card, "button", "small-button", "Copy timestamps"
         );
+
         copyButton.type = "button";
         copyButton.addEventListener("click", async () => {
           const text =
-            `${formatTime(item.start_seconds)} - ${formatTime(item.end_seconds)}: ` +
-            `${item.title || "Suggested highlight"}`;
+            `${formatTime(item.start_seconds)} - ` +
+            `${formatTime(item.end_seconds)}: ${item.title || "Highlight"}`;
 
           try {
             await navigator.clipboard.writeText(text);
-            setStatus("Copied highlight timestamps.", "success");
+            setStatus(statusBox, "Copied highlight timestamps.", "success");
           } catch {
-            setStatus("Clipboard access failed. You can select and copy the timestamps manually.", "error");
+            setStatus(
+              statusBox,
+              "Clipboard access failed. Copy the timestamps manually.",
+              "error"
+            );
           }
         });
 
@@ -414,60 +457,63 @@
       results.classList.remove("hidden");
     }
 
+    async function sendRequest(endpoint, body) {
+      const response = await fetch(API_BASE + endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
+
+      let data;
+
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error(
+          `The server returned an unexpected response (HTTP ${response.status}).`
+        );
+      }
+
+      if (!response.ok) {
+        const message = Array.isArray(data.detail)
+          ? data.detail.map(item => item.msg || "Invalid input").join("; ")
+          : (data.detail || data.message || "The request failed.");
+
+        throw new Error(message);
+      }
+
+      return data;
+    }
+
     async function analyzeTranscript() {
       const transcript = transcriptInput.value.trim();
 
       if (transcript.length < 20) {
-        setStatus("Please enter at least 20 characters of transcript text.", "error");
+        setStatus(statusBox, "Please enter at least 20 characters.", "error");
         transcriptInput.focus();
         return;
       }
 
       analyzeBtn.disabled = true;
       analyzeBtn.textContent = "Analyzing…";
-      setStatus("Connecting to the ClipForge AI backend…");
+      setStatus(statusBox, "Analyzing the transcript…");
       results.classList.add("hidden");
 
       try {
-        const response = await fetch(API_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-          },
-          body: JSON.stringify({ transcript })
-        });
-
-        const rawBody = await response.text();
-        let data;
-
-        try {
-          data = JSON.parse(rawBody);
-        } catch {
-          throw new Error(
-            `The server returned an unexpected response (HTTP ${response.status}).`
-          );
-        }
-
-        if (!response.ok) {
-          const detail = Array.isArray(data.detail)
-            ? data.detail.map((item) => item.msg || "Invalid input").join("; ")
-            : (data.detail || data.message || "Request failed");
-
-          throw new Error(`HTTP ${response.status}: ${detail}`);
-        }
+        const data = await sendRequest(
+          "/transcript-highlights",
+          { transcript }
+        );
 
         renderHighlights(data);
-        setStatus(
-          data.message || "Highlights received successfully.",
-          "success"
-        );
+        setStatus(statusBox, data.message || "Analysis complete.", "success");
       } catch (error) {
-        console.error("ClipForge request failed:", error);
         setStatus(
-          "Could not analyze the transcript. " +
-          (error.message || "Check your connection and try again.") +
-          " If this continues, check the backend health page and CORS settings.",
+          statusBox,
+          error.message || "Could not analyze the transcript.",
           "error"
         );
       } finally {
@@ -476,20 +522,59 @@
       }
     }
 
+    async function importYoutubeTranscript() {
+      const url = youtubeUrl.value.trim();
+
+      if (!url) {
+        setStatus(youtubeStatus, "Please paste a YouTube video URL.", "error");
+        youtubeUrl.focus();
+        return;
+      }
+
+      importYoutubeBtn.disabled = true;
+      importYoutubeBtn.textContent = "Importing transcript…";
+      setStatus(youtubeStatus, "Trying to retrieve the transcript…");
+      results.classList.add("hidden");
+
+      try {
+        const data = await sendRequest(
+          "/youtube-transcript-highlights",
+          { url }
+        );
+
+        renderHighlights(data);
+        setStatus(
+          youtubeStatus,
+          data.message || "Transcript imported successfully.",
+          "success"
+        );
+      } catch (error) {
+        setStatus(
+          youtubeStatus,
+          error.message || "Could not import this transcript.",
+          "error"
+        );
+      } finally {
+        importYoutubeBtn.disabled = false;
+        importYoutubeBtn.textContent = "Import YouTube transcript →";
+      }
+    }
+
     sampleBtn.addEventListener("click", () => {
       transcriptInput.value = sample;
-      setStatus("Sample loaded. Tap Find highlights to test the connection.");
+      setStatus(statusBox, "Sample loaded. Tap Find highlights to test it.");
     });
 
     clearBtn.addEventListener("click", () => {
       transcriptInput.value = "";
       highlightList.replaceChildren();
       results.classList.add("hidden");
-      setStatus("Transcript cleared.");
+      setStatus(statusBox, "Transcript cleared.");
       transcriptInput.focus();
     });
 
     analyzeBtn.addEventListener("click", analyzeTranscript);
+    importYoutubeBtn.addEventListener("click", importYoutubeTranscript);
   </script>
 </body>
 </html>
