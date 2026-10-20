@@ -1,21 +1,25 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#101020">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="description" content="Find engaging video moments from timestamped transcripts with ClipForge AI.">
   <title>ClipForge AI — Smart Video Highlights</title>
-
   <style>
     :root {
-      color-scheme: dark;
-      --bg: #101020;
-      --panel: #19192d;
-      --muted: #a7a7c2;
-      --text: #f7f6ff;
-      --purple: #a78bfa;
-      --cyan: #67e8f9;
-      --border: #34344d;
+      color-scheme: light;
+      --blue: #2563eb;
+      --blue-dark: #1d4ed8;
+      --pale: #eff6ff;
+      --bg: #f5f8ff;
+      --panel: #ffffff;
+      --text: #172033;
+      --muted: #64748b;
+      --border: #dbe5f3;
+      --green: #15803d;
+      --red: #b91c1c;
     }
 
     * { box-sizing: border-box; }
@@ -23,36 +27,60 @@
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
       color: var(--text);
-      background:
-        radial-gradient(ellipse at top left, #30205d, transparent 42%),
-        radial-gradient(ellipse at top right, #12394b, transparent 36%),
-        var(--bg);
     }
 
-    button, textarea, input { font: inherit; }
+    button, input, textarea { font: inherit; }
+
+    button {
+      min-height: 44px;
+      padding: 11px 15px;
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      background: white;
+      color: var(--text);
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    button:disabled { opacity: .6; cursor: wait; }
+    button:focus-visible, input:focus-visible, textarea:focus-visible {
+      outline: 3px solid #93c5fd;
+      outline-offset: 2px;
+    }
+
+    .primary {
+      color: white;
+      background: var(--blue);
+      border-color: var(--blue);
+    }
+
+    .primary:hover { background: var(--blue-dark); }
 
     .container {
-      width: min(900px, 100%);
+      width: min(940px, 100%);
       margin: auto;
-      padding: 24px 16px 56px;
+      padding: 20px 15px 45px;
     }
 
     header {
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 40px;
+      margin-bottom: 35px;
     }
 
     .logo {
       display: grid;
       place-items: center;
-      width: 48px;
-      height: 48px;
-      border-radius: 15px;
-      background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+      width: 46px;
+      height: 46px;
+      flex-shrink: 0;
+      border-radius: 14px;
+      color: white;
+      background: linear-gradient(135deg, #2563eb, #60a5fa);
       font-size: 25px;
       font-weight: 900;
     }
@@ -60,52 +88,50 @@
     header h1 { margin: 0; font-size: 21px; }
     header p { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
 
-    .hero { text-align: center; margin-bottom: 30px; }
+    .hero { text-align: center; margin-bottom: 28px; }
 
     .pill {
       display: inline-block;
       padding: 7px 12px;
-      border: 1px solid #65519a;
+      border: 1px solid #bfdbfe;
       border-radius: 99px;
-      color: #ddd0ff;
+      background: var(--pale);
+      color: var(--blue-dark);
       font-size: 12px;
-      background: #34245b77;
+      font-weight: 700;
     }
 
     .hero h2 {
-      margin: 18px 0 12px;
-      font-size: clamp(32px, 7vw, 54px);
-      line-height: 1.08;
-      letter-spacing: -1.5px;
+      margin: 17px 0 12px;
+      font-size: clamp(32px, 7vw, 52px);
+      line-height: 1.1;
+      letter-spacing: -1.3px;
     }
 
-    .gradient {
-      background: linear-gradient(90deg, #c4b5fd, #67e8f9);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
+    .accent { color: var(--blue); }
 
     .hero > p {
-      max-width: 570px;
+      max-width: 590px;
       margin: auto;
-      line-height: 1.7;
       color: var(--muted);
+      line-height: 1.7;
     }
 
     .panel {
-      padding: 22px;
+      padding: 21px;
       border: 1px solid var(--border);
-      border-radius: 22px;
-      background: #19192def;
-      box-shadow: 0 22px 65px #0003;
+      border-radius: 18px;
+      background: var(--panel);
+      box-shadow: 0 8px 28px #1e40af0a;
     }
 
-    .section-title { margin: 0 0 8px; font-size: 19px; }
+    .panel + .panel { margin-top: 16px; }
+
+    .section-title { margin: 0 0 7px; font-size: 19px; }
 
     .help {
       display: block;
-      margin: 0 0 10px;
+      margin: 0 0 11px;
       color: var(--muted);
       font-size: 13px;
       line-height: 1.6;
@@ -114,21 +140,15 @@
     input, textarea {
       display: block;
       width: 100%;
-      padding: 14px;
-      border: 1px solid #42425e;
-      border-radius: 14px;
-      outline: none;
+      padding: 13px;
+      border: 1px solid #cbd5e1;
+      border-radius: 11px;
       color: var(--text);
-      background: #101020;
-    }
-
-    input:focus, textarea:focus {
-      border-color: var(--purple);
-      box-shadow: 0 0 0 3px #a78bfa22;
+      background: white;
     }
 
     textarea {
-      min-height: 220px;
+      min-height: 225px;
       resize: vertical;
       line-height: 1.7;
     }
@@ -136,54 +156,37 @@
     .actions {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 14px;
+      gap: 9px;
+      margin-top: 13px;
     }
 
-    button {
-      min-height: 45px;
-      padding: 11px 17px;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      color: var(--text);
-      background: #292941;
-      cursor: pointer;
-    }
-
-    button:disabled { opacity: .6; cursor: wait; }
-
-    .primary {
-      flex: 1;
-      border: 0;
-      color: #171329;
-      font-weight: 800;
-      background: linear-gradient(100deg, #c4b5fd, #67e8f9);
-    }
+    .actions .primary { flex: 1; }
 
     .status {
-      margin-top: 15px;
-      padding: 12px 14px;
-      border-radius: 12px;
-      background: #25253b;
-      color: var(--muted);
+      margin-top: 13px;
+      padding: 12px;
+      border-radius: 10px;
+      background: #f1f5f9;
+      color: #475569;
       font-size: 13px;
-      line-height: 1.5;
+      line-height: 1.55;
       overflow-wrap: anywhere;
     }
 
-    .status.error { color: #fecaca; background: #471e2b; }
-    .status.success { color: #bbf7d0; background: #163a32; }
+    .status.error { background: #fef2f2; color: var(--red); }
+    .status.success { background: #f0fdf4; color: var(--green); }
 
-    .results { margin-top: 28px; }
-    .results h2 { margin-bottom: 6px; }
-    .results-summary { color: var(--muted); font-size: 13px; }
+    .results { margin-top: 27px; }
+    .results h2 { margin: 0 0 6px; }
+    .results-summary { color: var(--muted); font-size: 13px; line-height: 1.6; }
 
     .highlight {
-      margin-top: 14px;
+      margin-top: 13px;
       padding: 17px;
       border: 1px solid var(--border);
-      border-radius: 16px;
-      background: var(--panel);
+      border-radius: 15px;
+      background: white;
+      box-shadow: 0 5px 20px #1e40af08;
     }
 
     .highlight-top {
@@ -199,23 +202,45 @@
       flex-shrink: 0;
       padding: 6px 9px;
       border-radius: 8px;
-      color: #a5f3fc;
-      background: #164e6380;
+      background: var(--pale);
+      color: var(--blue-dark);
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 750;
+    }
+
+    .metrics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 12px;
+    }
+
+    .metric {
+      padding: 6px 9px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: #334155;
+      background: #f8fafc;
+      font-size: 12px;
+    }
+
+    .metric.score {
+      color: var(--blue-dark);
+      border-color: #bfdbfe;
+      background: var(--pale);
     }
 
     .reason, .excerpt {
-      color: var(--muted);
       font-size: 13px;
-      line-height: 1.65;
+      line-height: 1.7;
       overflow-wrap: anywhere;
     }
 
+    .reason { color: var(--muted); }
+
     .excerpt {
       padding-top: 12px;
-      border-top: 1px solid var(--border);
-      color: #e1e1f2;
+      border-top: 1px solid #e2e8f0;
       white-space: pre-wrap;
     }
 
@@ -224,7 +249,7 @@
     .hidden { display: none; }
 
     footer {
-      margin-top: 30px;
+      margin-top: 28px;
       text-align: center;
       color: var(--muted);
       font-size: 12px;
@@ -232,349 +257,333 @@
     }
 
     @media (max-width: 520px) {
-      .container { padding: 18px 12px 38px; }
-      header { margin-bottom: 32px; }
-      .panel { padding: 16px; }
+      .container { padding: 17px 12px 35px; }
+      header { margin-bottom: 28px; }
+      .panel { padding: 15px; }
       .highlight-top { flex-direction: column; }
       .time { order: -1; }
       .actions button { width: 100%; }
     }
   </style>
 </head>
-
 <body>
-  <main class="container">
-    <header>
-      <div class="logo" aria-hidden="true">C</div>
-      <div>
-        <h1>ClipForge AI</h1>
-        <p>Turn transcripts into highlight ideas</p>
-      </div>
-    </header>
+<main class="container">
+  <header>
+    <div class="logo" aria-hidden="true">C</div>
+    <div>
+      <h1>ClipForge AI</h1>
+      <p>Your transcript-to-shorts assistant</p>
+    </div>
+  </header>
 
-    <section class="hero">
-      <span class="pill">✦ Transcript Highlight Studio</span>
-      <h2>Find the moments<br><span class="gradient">worth sharing.</span></h2>
-      <p>
-        Import an available YouTube transcript or paste your own
-        timestamped transcript to discover potential highlights.
-      </p>
-    </section>
+  <section class="hero">
+    <span class="pill">✦ Smart Highlight Studio</span>
+    <h2>Find moments<br><span class="accent">worth sharing.</span></h2>
+    <p>Discover promising short-form video moments using timestamps and transcript text. Review the suggested clips before editing your video.</p>
+  </section>
 
-    <section class="panel">
-      <h2 class="section-title">Import from YouTube</h2>
-      <p class="help">
-        Paste a YouTube video URL. The video must have a transcript
-        that the server can access.
-      </p>
+  <section class="panel">
+    <h2 class="section-title">1. Import from YouTube</h2>
+    <p class="help">Some videos cannot be imported automatically. If that happens, paste the transcript in the next section.</p>
+    <label class="help" for="youtubeUrl">YouTube video URL</label>
+    <input id="youtubeUrl" type="url" maxlength="2048" placeholder="https://www.youtube.com/watch?v=..." autocomplete="url">
+    <div class="actions">
+      <button type="button" class="primary" id="importYoutubeBtn">Import transcript →</button>
+    </div>
+    <div class="status" id="youtubeStatus" role="status" aria-live="polite">Paste a YouTube URL to try importing its transcript.</div>
+  </section>
 
-      <label for="youtubeUrl" class="help">YouTube video URL</label>
-      <input
-        id="youtubeUrl"
-        type="url"
-        maxlength="2048"
-        placeholder="https://www.youtube.com/watch?v=..."
-        autocomplete="url"
-      >
-
-      <div class="actions">
-        <button type="button" class="primary" id="importYoutubeBtn">
-          Import YouTube transcript →
-        </button>
-      </div>
-
-      <div class="status" id="youtubeStatus" role="status" aria-live="polite">
-        Paste a YouTube URL to get started.
-      </div>
-    </section>
-
-    <section class="panel" style="margin-top:18px;">
-      <h2 class="section-title">Or paste a transcript</h2>
-      <p class="help">
-        Include timestamps such as 0:15, 1:20, or 01:02:10.
-        Each timestamp should be followed by the spoken text.
-      </p>
-
-      <label for="transcript" class="help">Timestamped transcript text</label>
-      <textarea
-        id="transcript"
-        maxlength="100000"
-        placeholder="0:05 Welcome to this video.
+  <section class="panel">
+    <h2 class="section-title">2. Analyze a transcript</h2>
+    <p class="help">Paste timestamped text. Examples: 0:15, 1:20, or 01:02:10. The analysis uses transcript text and local scoring rules, without requiring paid AI credits.</p>
+    <label class="help" for="transcript">Timestamped transcript</label>
+    <textarea id="transcript" maxlength="100000" placeholder="0:05 Welcome back to the show.
 0:15 Here is the biggest mistake beginners make.
-0:30 The solution is to start with a simple plan.
-0:45 This surprising result changed everything.
-1:00 Remember this important lesson."
-      ></textarea>
+0:30 This simple lesson changed everything.
+0:45 Here is what you can do today."></textarea>
+    <div class="actions">
+      <button type="button" id="sampleBtn">Load sample</button>
+      <button type="button" id="clearBtn">Clear</button>
+      <button type="button" class="primary" id="analyzeBtn">Find highlights →</button>
+    </div>
+    <div id="status" class="status" role="status" aria-live="polite">Ready. Paste a transcript to begin.</div>
+  </section>
 
-      <div class="actions">
-        <button type="button" id="sampleBtn">Load sample</button>
-        <button type="button" id="clearBtn">Clear</button>
-        <button type="button" class="primary" id="analyzeBtn">
-          Find highlights →
-        </button>
-      </div>
+  <section id="results" class="results hidden" aria-live="polite">
+    <h2>Suggested highlights</h2>
+    <p id="summary" class="results-summary"></p>
+    <div id="highlightList"></div>
+  </section>
 
-      <div id="status" class="status" role="status" aria-live="polite">
-        Ready. Paste a transcript to begin.
-      </div>
-    </section>
+  <footer>
+    <strong>ClipForge AI</strong> · Transcript Highlight Studio
+    <p>Scores are heuristic suggestions, not measured predictions of virality. This version identifies moments from transcript text; it does not yet render or download finished video clips.</p>
+  </footer>
+</main>
 
-    <section id="results" class="results hidden" aria-live="polite">
-      <h2>Suggested highlights</h2>
-      <p id="summary" class="results-summary"></p>
-      <div id="highlightList"></div>
-    </section>
+<script>
+(() => {
+  "use strict";
 
-    <footer>
-      <p>ClipForge AI · Powered by your Render backend</p>
-      <p>
-        Highlight scores use local text rules. Results are suggestions,
-        not verified viral moments. This website does not create video files.
-      </p>
-    </footer>
-  </main>
+  const API_BASE = "https://clipforge-ai-p7mk.onrender.com";
+  const $ = id => document.getElementById(id);
 
-  <script>
-    const API_BASE = "https://clipforge-ai-p7mk.onrender.com";
+  const transcriptInput = $("transcript");
+  const youtubeUrl = $("youtubeUrl");
+  const importButton = $("importYoutubeBtn");
+  const analyzeButton = $("analyzeBtn");
+  const statusBox = $("status");
+  const youtubeStatus = $("youtubeStatus");
+  const results = $("results");
+  const summary = $("summary");
+  const highlightList = $("highlightList");
 
-    const transcriptInput = document.getElementById("transcript");
-    const youtubeUrl = document.getElementById("youtubeUrl");
-    const importYoutubeBtn = document.getElementById("importYoutubeBtn");
-    const analyzeBtn = document.getElementById("analyzeBtn");
-    const sampleBtn = document.getElementById("sampleBtn");
-    const clearBtn = document.getElementById("clearBtn");
-    const statusBox = document.getElementById("status");
-    const youtubeStatus = document.getElementById("youtubeStatus");
-    const results = document.getElementById("results");
-    const summary = document.getElementById("summary");
-    const highlightList = document.getElementById("highlightList");
+  const sample = [
+    "0:05 Welcome back to the show.",
+    "0:15 Here is the biggest mistake beginners make.",
+    "0:30 The solution is to start with a simple plan.",
+    "0:45 This surprising result changed everything.",
+    "1:00 Remember this important lesson."
+  ].join("\n");
 
-    const sample = [
-      "0:05 Welcome to this video.",
-      "0:15 Here is the biggest mistake beginners make.",
-      "0:30 The solution is to start with a simple plan.",
-      "0:45 This surprising result changed everything.",
-      "1:00 Remember this important lesson."
-    ].join("\n");
+  function setStatus(element, message, type = "") {
+    element.textContent = message;
+    element.className = "status" + (type ? " " + type : "");
+  }
 
-    function setStatus(element, message, type = "") {
-      element.textContent = message;
-      element.className = "status" + (type ? " " + type : "");
+  function formatTime(value) {
+    const seconds = Math.max(0, Math.floor(Number(value) || 0));
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainder = seconds % 60;
+
+    if (hours) {
+      return hours + ":" +
+        String(minutes).padStart(2, "0") + ":" +
+        String(remainder).padStart(2, "0");
+    }
+    return minutes + ":" + String(remainder).padStart(2, "0");
+  }
+
+  function addText(parent, tag, className, value) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    node.textContent = value == null ? "" : String(value);
+    parent.appendChild(node);
+    return node;
+  }
+
+  function metricLabel(value, fallback) {
+    return value === null || value === undefined || value === ""
+      ? fallback
+      : String(value);
+  }
+
+  async function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return;
     }
 
-    function formatTime(value) {
-      const seconds = Math.max(0, Math.floor(Number(value) || 0));
-      const hours = Math.floor(seconds / 3600);
-      const minutes = Math.floor((seconds % 3600) / 60);
-      const remainder = seconds % 60;
+    const temporary = document.createElement("textarea");
+    temporary.value = text;
+    temporary.style.position = "fixed";
+    temporary.style.opacity = "0";
+    document.body.appendChild(temporary);
+    temporary.select();
+    const copied = document.execCommand("copy");
+    temporary.remove();
 
-      if (hours) {
-        return [hours, minutes, remainder]
-          .map((n, i) => i === 0 ? String(n) : String(n).padStart(2, "0"))
-          .join(":");
+    if (!copied) throw new Error("Copy was not available on this device.");
+  }
+
+  function renderHighlights(data) {
+    highlightList.replaceChildren();
+
+    const items = Array.isArray(data.highlights) ? data.highlights : [];
+    summary.textContent =
+      items.length + " suggestion(s) · " +
+      (data.mode || "Transcript analysis") +
+      (data.skipped_lines ? " · Skipped lines: " + data.skipped_lines : "");
+
+    if (!items.length) {
+      addText(
+        highlightList,
+        "p",
+        "status",
+        data.message || "No highlights found. Try adding more timestamped transcript text."
+      );
+    }
+
+    items.forEach((item, index) => {
+      const card = document.createElement("article");
+      card.className = "highlight";
+
+      const top = document.createElement("div");
+      top.className = "highlight-top";
+
+      addText(top, "h3", "", (index + 1) + ". " +
+        (item.title || "Suggested highlight"));
+
+      const start = Number(item.start_seconds) || 0;
+      const end = Number(item.end_seconds) || start;
+      const startLabel = formatTime(start);
+      const endLabel = formatTime(end);
+
+      addText(top, "span", "time", startLabel + " – " + endLabel);
+      card.appendChild(top);
+
+      const metrics = document.createElement("div");
+      metrics.className = "metrics";
+
+      addText(metrics, "span", "metric",
+        "Duration: " + metricLabel(
+          item.duration_seconds,
+          Math.max(0, end - start) + " sec"
+        ));
+
+      if (item.score !== undefined && item.score !== null) {
+        addText(metrics, "span", "metric score", "Score: " + item.score);
       }
 
-      return minutes + ":" + String(remainder).padStart(2, "0");
-    }
+      card.appendChild(metrics);
 
-    function addText(parent, tag, className, value) {
-      const element = document.createElement(tag);
-      if (className) element.className = className;
-      element.textContent = value == null ? "" : String(value);
-      parent.appendChild(element);
-      return element;
-    }
+      if (item.reason) addText(card, "p", "reason", item.reason);
+      if (item.excerpt) addText(card, "p", "excerpt", item.excerpt);
 
-    function renderHighlights(data) {
-      highlightList.replaceChildren();
+      const copyButton = addText(card, "button", "small-button", "Copy clip details");
+      copyButton.type = "button";
 
-      const items = Array.isArray(data.highlights) ? data.highlights : [];
+      copyButton.addEventListener("click", async () => {
+        const details =
+          "ClipForge AI highlight\n" +
+          "Start: " + startLabel + "\n" +
+          "End: " + endLabel + "\n" +
+          "Duration: " + metricLabel(item.duration_seconds, (end - start) + " sec") + "\n" +
+          "Score: " + metricLabel(item.score, "Not provided") + "\n" +
+          "Title: " + (item.title || "Suggested highlight") + "\n" +
+          "Reason: " + (item.reason || "Not provided") + "\n" +
+          "Excerpt: " + (item.excerpt || "");
 
-      summary.textContent =
-        `${items.length} suggestion(s) · ${data.mode || "Transcript analysis"}` +
-        (data.skipped_lines ? ` · Skipped lines: ${data.skipped_lines}` : "");
-
-      if (!items.length) {
-        addText(
-          highlightList,
-          "p",
-          "status",
-          data.message || "No highlights were found."
-        );
-      }
-
-      items.forEach((item) => {
-        const card = document.createElement("article");
-        card.className = "highlight";
-
-        const top = document.createElement("div");
-        top.className = "highlight-top";
-
-        addText(top, "h3", "", item.title || "Suggested highlight");
-
-        addText(
-          top,
-          "span",
-          "time",
-          `${formatTime(item.start_seconds)} – ${formatTime(item.end_seconds)}`
-        );
-
-        card.appendChild(top);
-
-        if (item.reason) {
-          addText(card, "p", "reason", item.reason);
+        try {
+          await copyText(details);
+          setStatus(statusBox, "Clip details copied.", "success");
+          copyButton.textContent = "Copied!";
+          setTimeout(() => { copyButton.textContent = "Copy clip details"; }, 1500);
+        } catch (error) {
+          setStatus(statusBox, error.message || "Could not copy details.", "error");
         }
-
-        if (item.excerpt) {
-          addText(card, "p", "excerpt", item.excerpt);
-        }
-
-        const copyButton = addText(
-          card, "button", "small-button", "Copy timestamps"
-        );
-
-        copyButton.type = "button";
-        copyButton.addEventListener("click", async () => {
-          const text =
-            `${formatTime(item.start_seconds)} - ` +
-            `${formatTime(item.end_seconds)}: ${item.title || "Highlight"}`;
-
-          try {
-            await navigator.clipboard.writeText(text);
-            setStatus(statusBox, "Copied highlight timestamps.", "success");
-          } catch {
-            setStatus(
-              statusBox,
-              "Clipboard access failed. Copy the timestamps manually.",
-              "error"
-            );
-          }
-        });
-
-        highlightList.appendChild(card);
       });
 
-      results.classList.remove("hidden");
-    }
-
-    async function sendRequest(endpoint, body) {
-      const response = await fetch(API_BASE + endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        body: JSON.stringify(body)
-      });
-
-      let data;
-
-      try {
-        data = await response.json();
-      } catch {
-        throw new Error(
-          `The server returned an unexpected response (HTTP ${response.status}).`
-        );
-      }
-
-      if (!response.ok) {
-        const message = Array.isArray(data.detail)
-          ? data.detail.map(item => item.msg || "Invalid input").join("; ")
-          : (data.detail || data.message || "The request failed.");
-
-        throw new Error(message);
-      }
-
-      return data;
-    }
-
-    async function analyzeTranscript() {
-      const transcript = transcriptInput.value.trim();
-
-      if (transcript.length < 20) {
-        setStatus(statusBox, "Please enter at least 20 characters.", "error");
-        transcriptInput.focus();
-        return;
-      }
-
-      analyzeBtn.disabled = true;
-      analyzeBtn.textContent = "Analyzing…";
-      setStatus(statusBox, "Analyzing the transcript…");
-      results.classList.add("hidden");
-
-      try {
-        const data = await sendRequest(
-          "/transcript-highlights",
-          { transcript }
-        );
-
-        renderHighlights(data);
-        setStatus(statusBox, data.message || "Analysis complete.", "success");
-      } catch (error) {
-        setStatus(
-          statusBox,
-          error.message || "Could not analyze the transcript.",
-          "error"
-        );
-      } finally {
-        analyzeBtn.disabled = false;
-        analyzeBtn.textContent = "Find highlights →";
-      }
-    }
-
-    async function importYoutubeTranscript() {
-      const url = youtubeUrl.value.trim();
-
-      if (!url) {
-        setStatus(youtubeStatus, "Please paste a YouTube video URL.", "error");
-        youtubeUrl.focus();
-        return;
-      }
-
-      importYoutubeBtn.disabled = true;
-      importYoutubeBtn.textContent = "Importing transcript…";
-      setStatus(youtubeStatus, "Trying to retrieve the transcript…");
-      results.classList.add("hidden");
-
-      try {
-        const data = await sendRequest(
-          "/youtube-transcript-highlights",
-          { url }
-        );
-
-        renderHighlights(data);
-        setStatus(
-          youtubeStatus,
-          data.message || "Transcript imported successfully.",
-          "success"
-        );
-      } catch (error) {
-        setStatus(
-          youtubeStatus,
-          error.message || "Could not import this transcript.",
-          "error"
-        );
-      } finally {
-        importYoutubeBtn.disabled = false;
-        importYoutubeBtn.textContent = "Import YouTube transcript →";
-      }
-    }
-
-    sampleBtn.addEventListener("click", () => {
-      transcriptInput.value = sample;
-      setStatus(statusBox, "Sample loaded. Tap Find highlights to test it.");
+      card.appendChild(copyButton);
+      highlightList.appendChild(card);
     });
 
-    clearBtn.addEventListener("click", () => {
-      transcriptInput.value = "";
-      highlightList.replaceChildren();
-      results.classList.add("hidden");
-      setStatus(statusBox, "Transcript cleared.");
+    results.classList.remove("hidden");
+    results.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  async function sendRequest(endpoint, body) {
+    const response = await fetch(API_BASE + endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
+
+    let data;
+    try {
+      data = await response.json();
+    } catch {
+      throw new Error("Unexpected server response (HTTP " + response.status + ").");
+    }
+
+    if (!response.ok) {
+      const message = Array.isArray(data.detail)
+        ? data.detail.map(item => item.msg || "Invalid input").join("; ")
+        : (data.detail || data.message || "Request failed.");
+
+      throw new Error(typeof message === "string" ? message : JSON.stringify(message));
+    }
+
+    return data;
+  }
+
+  async function analyzeTranscript() {
+    const transcript = transcriptInput.value.trim();
+
+    if (transcript.length < 20) {
+      setStatus(statusBox, "Please enter at least 20 characters.", "error");
       transcriptInput.focus();
-    });
+      return;
+    }
 
-    analyzeBtn.addEventListener("click", analyzeTranscript);
-    importYoutubeBtn.addEventListener("click", importYoutubeTranscript);
-  </script>
+    analyzeButton.disabled = true;
+    analyzeButton.textContent = "Analyzing…";
+    setStatus(statusBox, "Analyzing transcript timestamps and candidate moments…");
+    results.classList.add("hidden");
+
+    try {
+      const data = await sendRequest("/transcript-highlights", { transcript });
+      renderHighlights(data);
+      setStatus(statusBox, data.message || "Analysis complete.", "success");
+    } catch (error) {
+      setStatus(statusBox, error.message || "Could not analyze the transcript.", "error");
+    } finally {
+      analyzeButton.disabled = false;
+      analyzeButton.textContent = "Find highlights →";
+    }
+  }
+
+  async function importYoutubeTranscript() {
+    const url = youtubeUrl.value.trim();
+
+    if (!url) {
+      setStatus(youtubeStatus, "Please paste a YouTube video URL.", "error");
+      youtubeUrl.focus();
+      return;
+    }
+
+    importButton.disabled = true;
+    importButton.textContent = "Importing…";
+    setStatus(youtubeStatus, "Trying to retrieve the transcript…");
+    results.classList.add("hidden");
+
+    try {
+      const data = await sendRequest("/youtube-transcript-highlights", { url });
+      renderHighlights(data);
+      setStatus(youtubeStatus, data.message || "Transcript imported.", "success");
+    } catch (error) {
+      setStatus(
+        youtubeStatus,
+        (error.message || "Could not import the transcript.") +
+        " If YouTube blocks access, paste the transcript manually below.",
+        "error"
+      );
+    } finally {
+      importButton.disabled = false;
+      importButton.textContent = "Import transcript →";
+    }
+  }
+
+  $("sampleBtn").addEventListener("click", () => {
+    transcriptInput.value = sample;
+    setStatus(statusBox, "Sample loaded. Tap Find highlights to test the analyzer.");
+  });
+
+  $("clearBtn").addEventListener("click", () => {
+    transcriptInput.value = "";
+    highlightList.replaceChildren();
+    results.classList.add("hidden");
+    setStatus(statusBox, "Transcript cleared.");
+    transcriptInput.focus();
+  });
+
+  analyzeButton.addEventListener("click", analyzeTranscript);
+  importButton.addEventListener("click", importYoutubeTranscript);
+})();
+</script>
 </body>
 </html>
