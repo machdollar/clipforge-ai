@@ -1,22 +1,24 @@
 import re
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 
-# ---------------------------------------------------------
-# Application
-# ---------------------------------------------------------
+APP_VERSION = "1.1.0"
 
 app = FastAPI(
     title="ClipForge AI API",
-    description="Transcript-based video highlight suggestions",
-    version="1.0.0",
+    description=(
+        "Finds potential highlights in timestamped transcripts. "
+        "This version uses local text-scoring rules and does not "
+        "make paid AI API calls or create video files."
+    ),
+    version=APP_VERSION,
 )
 
-# Allow the GitHub Pages frontend to call this Render API.
+# Allow the GitHub Pages frontend to call this backend.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -24,48 +26,27 @@ app.add_middleware(
     ],
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type", "Accept"],
+    allow_headers=["*"],
 )
 
 
-# ---------------------------------------------------------
-# Configuration
-# ---------------------------------------------------------
-
-MAX_HIGHLIGHTS = 15
-MAX_TRANSCRIPT_LENGTH = 100_000
-MAX_LINE_LENGTH = 5_000
-MAX_CLIP_SECONDS = 60.0
-DEFAULT_LAST_CLIP_SECONDS = 30.0
-MIN_SPACING_SECONDS = 12.0
-
-
-# ---------------------------------------------------------
-# Request model
-# ---------------------------------------------------------
-
 class TranscriptRequest(BaseModel):
     transcript: str = Field(
+        ...,
         min_length=20,
-        max_length=MAX_TRANSCRIPT_LENGTH,
+        max_length=100000,
+        description="A timestamped video transcript.",
     )
 
 
-# ---------------------------------------------------------
-# Timestamp parsing
-# Supported examples:
-# [00:45] Spoken words
-# [01:02:15] Spoken words
-# 00:45 - Spoken words
-# [75s] Spoken words
-# [80.5 seconds] Spoken words
-# [1m 20s] Spoken words
-# [1min 20s] Spoken words
-# ---------------------------------------------------------
-
-TIMESTAMP_PATTERN = re.compile(
-    r"^\s*[\[(]?\s*"
-    r"(?P<timestamp>"
+# Supported timestamp formats include:
+# 0:45
+# 01:02:15
+# 75s
+# 80.5 seconds
+# 1m 20s
+# 1min 20s
+TIMESTAMP_TOKEN = (
     r"\d{1,3}:\d{2}:\d{2}(?:\.\d+)?"
     r"|"
     r"\d{1,4}:\d{2}(?:\.\d+)?"
@@ -74,458 +55,460 @@ TIMESTAMP_PATTERN = re.compile(
     r"|"
     r"\d+\s*m(?:in(?:ute)?s?)?"
     r"(?:\s*\d+(?:\.\d+)?\s*s?)?"
-    r")"
-    r"\s*[\])}]?\s*"
-    r"(?P<text>.*)$",
+)
+
+TIMESTAMP_INLINE_PATTERN = re.compile(
+    r"(?<!\S)(?:[\[(]\s*)?"
+    r"(?P<timestamp>" + TIMESTAMP_TOKEN + r")"
+    r"\s*[\])}]?\s*(?:[-–—|]\s*)?",
     re.IGNORECASE,
 )
 
-WORD_PATTERN = re.compile(r"\b[\w'-]+\b", re.UNICODE)
+WORD_PATTERN = re.compile(r"[a-zA-Z0-9']+")
 
-SIGNAL_GROUPS = {
-    "lesson": {
-        "important", "lesson", "learn", "remember",
-        "understand", "realize", "realise", "insight",
-        "wisdom", "advice",
+# Words and phrases that can indicate useful highlight moments.
+KEYWORD_GROUPS = {
+    "hook": {
+        "secret", "surprising", "shocking", "unexpected",
+        "nobody", "everyone", "mistake", "truth", "warning",
+        "finally", "revealed", "discover", "imagine",
     },
-    "mistake": {
-        "mistake", "wrong", "failure", "fail", "avoid",
-        "warning", "danger", "risk", "problem", "issue",
+    "learning": {
+        "learn", "lesson", "tip", "guide", "explain",
+        "solution", "method", "strategy", "step", "steps",
+        "important", "remember", "understand", "because",
     },
-    "solution": {
-        "solution", "solve", "fix", "improve", "method",
-        "strategy", "technique", "step", "tip", "trick",
-        "guide",
+    "emotion": {
+        "amazing", "incredible", "exciting", "powerful",
+        "changed", "success", "fail", "failure", "problem",
+        "challenge", "best", "worst", "favorite",
     },
-    "surprise": {
-        "secret", "truth", "surprising", "unexpected",
-        "shocking", "amazing", "incredible", "actually",
-        "revealed",
-    },
-    "emphasis": {
-        "key", "best", "worst", "always", "never", "must",
-        "essential", "critical", "powerful", "difference",
-    },
-    "story": {
-        "happened", "story", "experience", "finally",
-        "result", "changed", "discovered", "realized",
-        "realised",
+    "action": {
+        "start", "stop", "try", "use", "make", "build",
+        "create", "avoid", "improve", "change", "help",
     },
 }
 
 FILLER_WORDS = {
-    "a", "an", "the", "and", "or", "but", "so", "because",
-    "to", "of", "in", "on", "at", "for", "with", "from",
-    "is", "are", "was", "were", "be", "been", "being",
-    "it", "this", "that", "these", "those", "i", "you",
-    "we", "they", "he", "she", "my", "your", "our",
-    "me", "us", "them", "do", "does", "did", "have",
-    "has", "had", "can", "could", "will", "would",
-    "just", "very", "really", "there", "here",
+    "a", "an", "and", "are", "as", "at", "be", "but",
+    "by", "for", "from", "had", "has", "have", "he",
+    "her", "here", "him", "his", "i", "if", "in",
+    "into", "is", "it", "its", "just", "me", "my",
+    "of", "on", "or", "our", "she", "so", "that",
+    "the", "their", "them", "there", "they", "this",
+    "to", "us", "was", "we", "were", "what", "when",
+    "where", "which", "who", "will", "with", "you",
+    "your",
 }
 
 
 def parse_timestamp(value: str) -> float:
-    """Convert a supported timestamp format to seconds."""
-
+    """Convert a supported timestamp into seconds."""
     value = value.strip().lower()
+    value = value.strip("[](){} ")
 
-    # Formats such as 1m20s, 1min 20s, and 2minutes.
-    if re.search(r"[a-z]", value):
-        minute_match = re.fullmatch(
-            r"(\d+)\s*m(?:in(?:ute)?s?)?"
-            r"(?:\s*(\d+(?:\.\d+)?)\s*s?)?",
-            value,
+    # Hours:minutes:seconds, such as 01:02:15
+    if re.fullmatch(r"\d{1,3}:\d{2}:\d{2}(?:\.\d+)?", value):
+        hours, minutes, seconds = value.split(":")
+        result = (
+            int(hours) * 3600
+            + int(minutes) * 60
+            + float(seconds)
         )
+        if int(minutes) >= 60 or float(seconds) >= 60:
+            raise ValueError("Invalid timestamp.")
+        return result
 
-        if minute_match:
-            minutes = int(minute_match.group(1))
-            seconds = float(minute_match.group(2) or 0)
+    # Minutes:seconds, such as 1:25
+    if re.fullmatch(r"\d{1,4}:\d{2}(?:\.\d+)?", value):
+        minutes, seconds = value.split(":")
+        if float(seconds) >= 60:
+            raise ValueError("Invalid timestamp.")
+        return int(minutes) * 60 + float(seconds)
 
-            if seconds >= 60:
-                raise ValueError(
-                    "Seconds in a minute-based timestamp must be below 60."
-                )
+    # Seconds, such as 75s or 80.5 seconds
+    seconds_match = re.fullmatch(
+        r"(\d+(?:\.\d+)?)\s*(?:seconds?|secs?|s)",
+        value,
+    )
+    if seconds_match:
+        return float(seconds_match.group(1))
 
-            return minutes * 60 + seconds
-
-        seconds_match = re.fullmatch(
-            r"(\d+(?:\.\d+)?)\s*(?:seconds?|secs?|s)",
-            value,
-        )
-
-        if seconds_match:
-            return float(seconds_match.group(1))
-
-        raise ValueError("Unsupported timestamp format.")
-
-    parts = value.split(":")
-
-    try:
-        if len(parts) == 2:
-            minutes = int(parts[0])
-            seconds = float(parts[1])
-
-            if seconds >= 60:
-                raise ValueError("Seconds must be below 60.")
-
-            return minutes * 60 + seconds
-
-        if len(parts) == 3:
-            hours = int(parts[0])
-            minutes = int(parts[1])
-            seconds = float(parts[2])
-
-            if minutes >= 60 or seconds >= 60:
-                raise ValueError(
-                    "Minutes and seconds must be below 60."
-                )
-
-            return hours * 3600 + minutes * 60 + seconds
-
-    except ValueError as exc:
-        raise ValueError("Invalid timestamp.") from exc
+    # Minutes with optional seconds, such as 1m 20s or 1min 20
+    minutes_match = re.fullmatch(
+        r"(\d+)\s*m(?:in(?:ute)?s?)?"
+        r"(?:\s*(\d+(?:\.\d+)?)\s*s?)?",
+        value,
+    )
+    if minutes_match:
+        minutes = int(minutes_match.group(1))
+        seconds = float(minutes_match.group(2) or 0)
+        if seconds >= 60:
+            raise ValueError("Invalid timestamp.")
+        return minutes * 60 + seconds
 
     raise ValueError("Unsupported timestamp format.")
 
 
-# ---------------------------------------------------------
-# Transcript parsing
-# ---------------------------------------------------------
+def parse_transcript(transcript: str) -> tuple[list[dict[str, Any]], int]:
+    """
+    Parse a transcript containing timestamps.
 
-def parse_transcript(text: str) -> tuple[list[dict[str, Any]], int]:
-    """Parse timestamped lines, merge duplicate times, and sort."""
-
+    Supports multiple timestamps on one line and timestamps on
+    separate lines. Text before the first timestamp is ignored.
+    """
     entries: list[dict[str, Any]] = []
     skipped_lines = 0
 
-    for line_number, raw_line in enumerate(text.splitlines(), start=1):
-        line = raw_line.strip()
+    for line in transcript.splitlines():
+        line = line.strip()
 
         if not line:
             continue
 
-        match = TIMESTAMP_PATTERN.match(line)
+        matches = list(TIMESTAMP_INLINE_PATTERN.finditer(line))
 
-        if not match:
+        if not matches:
             skipped_lines += 1
             continue
 
-        timestamp_text = match.group("timestamp")
-        content = match.group("text").strip()
-        content = content.lstrip(" \t-–—|:")
+        found_on_line = 0
 
-        try:
-            seconds = parse_timestamp(timestamp_text)
-        except ValueError:
+        for index, match in enumerate(matches):
+            timestamp_text = match.group("timestamp")
+
+            try:
+                seconds = parse_timestamp(timestamp_text)
+            except (ValueError, OverflowError):
+                skipped_lines += 1
+                continue
+
+            content_start = match.end()
+
+            if index + 1 < len(matches):
+                content_end = matches[index + 1].start()
+            else:
+                content_end = len(line)
+
+            content = line[content_start:content_end].strip()
+            content = content.strip(" -–—|:;,.")
+            content = re.sub(r"\s+", " ", content)
+
+            if not content:
+                skipped_lines += 1
+                continue
+
+            entries.append(
+                {
+                    "timestamp": round(seconds, 2),
+                    "text": content,
+                }
+            )
+            found_on_line += 1
+
+        if found_on_line == 0:
             skipped_lines += 1
-            continue
 
-        if not content:
-            skipped_lines += 1
-            continue
+    # Sort chronologically.
+    entries.sort(key=lambda item: item["timestamp"])
 
-        if seconds < 0:
-            skipped_lines += 1
-            continue
-
-        entries.append({
-            "start_seconds": float(seconds),
-            "text": content[:MAX_LINE_LENGTH],
-            "line_number": line_number,
-        })
-
-    if not entries:
-        raise HTTPException(
-            status_code=422,
-            detail=(
-                "No valid timestamped transcript lines were found. "
-                "Examples: [00:45] Spoken words, "
-                "[01:02:15] Spoken words, or [75s] Spoken words."
-            ),
-        )
-
-    entries.sort(
-        key=lambda item: (
-            item["start_seconds"],
-            item["line_number"],
-        )
-    )
-
-    # Combine text when multiple lines share the same timestamp.
+    # Merge duplicate timestamps rather than returning duplicate cards.
     merged: list[dict[str, Any]] = []
 
     for entry in entries:
         if (
             merged
-            and entry["start_seconds"] == merged[-1]["start_seconds"]
+            and merged[-1]["timestamp"] == entry["timestamp"]
         ):
             merged[-1]["text"] += " " + entry["text"]
-            merged[-1]["text"] = merged[-1]["text"][:MAX_LINE_LENGTH]
         else:
-            merged.append({
-                "start_seconds": entry["start_seconds"],
-                "text": entry["text"],
-            })
+            merged.append(entry.copy())
 
     return merged, skipped_lines
 
 
-# ---------------------------------------------------------
-# Heuristic scoring
-# No external AI API is used.
-# ---------------------------------------------------------
-
-def score_entry(text: str) -> dict[str, Any]:
-    """Score a transcript line using exact word matches."""
-
-    words = [word.lower() for word in WORD_PATTERN.findall(text)]
-    word_count = len(words)
-    unique_count = len(set(words))
-
-    groups_found: list[str] = []
-    signal_words: list[str] = []
-
-    for group, terms in SIGNAL_GROUPS.items():
-        hits = sorted(set(words).intersection(terms))
-
-        if hits:
-            groups_found.append(group)
-            signal_words.extend(hits)
-
-    score = 0.0
-    reasons: list[str] = []
-
-    # A signal category adds value, with a modest bonus for
-    # multiple distinct terms in that category.
-    for group in groups_found:
-        hits = set(words).intersection(SIGNAL_GROUPS[group])
-        score += min(2.0, 1.25 + 0.25 * max(0, len(hits) - 1))
-        reasons.append(group)
-
-    if "?" in text:
-        score += 1.25
-        reasons.append("question")
-
-    if "!" in text:
-        score += 0.5
-        reasons.append("strong emphasis")
-
-    if word_count >= 8:
-        score += 0.75
-
-    if word_count >= 15:
-        score += 0.5
-
-    if word_count and unique_count / word_count >= 0.65:
-        score += 0.25
-
-    # Penalize extremely short fragments.
-    if word_count < 4:
-        score -= 1.5
-
-    # Penalize artificial-looking repeated characters.
-    if re.search(r"(.)\1{4,}", text):
-        score -= 0.5
-
-    if not reasons:
-        reasons.append("general content")
-
-    return {
-        "score": round(max(0.0, score), 2),
-        "signals": reasons,
-        "signal_words": signal_words,
-        "word_count": word_count,
-    }
-
-
-# ---------------------------------------------------------
-# Meaningful titles
-# ---------------------------------------------------------
-
-def make_title(text: str) -> str:
-    """Create a descriptive title based on exact words and punctuation."""
-
-    cleaned = re.sub(r"\s+", " ", text).strip()
-    cleaned = re.sub(r"^[\W_]+|[\W_]+$", "", cleaned)
-
-    words = [word.lower() for word in WORD_PATTERN.findall(cleaned)]
-    word_set = set(words)
-
-    if "?" in cleaned:
-        prefix = "The Big Question"
-    elif word_set.intersection(SIGNAL_GROUPS["mistake"]):
-        prefix = "A Common Mistake"
-    elif word_set.intersection(SIGNAL_GROUPS["solution"]):
-        prefix = "A Useful Tip"
-    elif word_set.intersection(SIGNAL_GROUPS["surprise"]):
-        prefix = "A Surprising Point"
-    elif word_set.intersection(SIGNAL_GROUPS["lesson"]):
-        prefix = "The Key Lesson"
-    elif word_set.intersection(SIGNAL_GROUPS["story"]):
-        prefix = "A Story Worth Hearing"
-    else:
-        prefix = "Key Moment"
-
-    # Use meaningful words from the excerpt, excluding common filler.
-    title_words = [
-        word for word in WORD_PATTERN.findall(cleaned)
-        if word.lower() not in FILLER_WORDS
+def score_entry(text: str) -> float:
+    """Estimate how interesting a transcript segment may be."""
+    words = [
+        word.lower()
+        for word in WORD_PATTERN.findall(text)
     ]
 
-    if not title_words:
-        title_words = WORD_PATTERN.findall(cleaned)
+    if not words:
+        return 0.0
 
-    excerpt = " ".join(title_words[:6]).strip(" ,;:-")
+    score = 0.0
+    unique_words = set(words)
 
-    if len(title_words) > 6:
-        excerpt += "…"
+    for group in KEYWORD_GROUPS.values():
+        score += len(unique_words.intersection(group)) * 1.5
 
-    if not excerpt:
-        return prefix
+    # Give some value to meaningful content words.
+    meaningful_words = [
+        word for word in words
+        if word not in FILLER_WORDS and len(word) > 2
+    ]
+    score += min(len(meaningful_words), 20) * 0.12
 
-    return f"{prefix}: {excerpt}"[:120]
+    # Very short segments often lack enough context.
+    if len(words) < 4:
+        score -= 1.0
+
+    # Questions can make useful hooks.
+    if "?" in text:
+        score += 0.8
+
+    # Emphasis may indicate an expressive moment.
+    if "!" in text:
+        score += 0.5
+
+    # Prefer complete, readable segments.
+    if text.rstrip().endswith((".", "!", "?", "…")):
+        score += 0.4
+
+    return round(max(score, 0.0), 3)
 
 
-# ---------------------------------------------------------
-# Highlight selection
-# ---------------------------------------------------------
+def make_title(text: str) -> str:
+    """Create a short title from the transcript segment."""
+    cleaned = re.sub(r"\s+", " ", text).strip()
+    cleaned = cleaned.strip(" .,!?:;—-")
 
-def choose_highlights(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Rank transcript entries and return suggestions in time order."""
+    if not cleaned:
+        return "Potential highlight"
 
-    candidates: list[dict[str, Any]] = []
+    words = cleaned.split()
+    title_words = words[:8]
+    title = " ".join(title_words)
+
+    if len(words) > 8:
+        title += "…"
+
+    if len(title) > 70:
+        title = title[:67].rstrip() + "..."
+
+    return title[0].upper() + title[1:] if title else "Potential highlight"
+
+
+def choose_highlights(
+    entries: list[dict[str, Any]],
+    limit: int = 15,
+) -> list[dict[str, Any]]:
+    """Rank transcript entries and select varied highlight suggestions."""
+    if not entries:
+        return []
+
+    scored_entries = []
 
     for index, entry in enumerate(entries):
-        metrics = score_entry(entry["text"])
+        text = entry["text"]
+        score = score_entry(text)
 
-        candidates.append({
-            **entry,
-            **metrics,
-            "original_index": index,
-        })
+        scored_entries.append(
+            {
+                "index": index,
+                "timestamp": entry["timestamp"],
+                "text": text,
+                "score": score,
+            }
+        )
 
-    # Higher-scoring lines rank first; earlier lines break ties.
+    # Higher-scoring entries are considered first.
     ranked = sorted(
-        candidates,
+        scored_entries,
         key=lambda item: (
-            -item["score"],
-            item["start_seconds"],
-            item["original_index"],
+            item["score"],
+            len(item["text"]),
         ),
+        reverse=True,
     )
 
     selected: list[dict[str, Any]] = []
+    selected_timestamps: set[float] = set()
 
-    # Prefer variety across the timeline.
+    # First pass: choose strong entries with some time between them.
     for candidate in ranked:
-        if len(selected) >= MAX_HIGHLIGHTS:
+        if len(selected) >= limit:
             break
 
-        too_close = any(
-            abs(
-                candidate["start_seconds"] - chosen["start_seconds"]
-            ) < MIN_SPACING_SECONDS
-            for chosen in selected
-        )
+        if candidate["score"] <= 0:
+            continue
 
-        if too_close:
+        timestamp = candidate["timestamp"]
+
+        if any(
+            abs(timestamp - chosen["timestamp"]) < 12
+            for chosen in selected
+        ):
             continue
 
         selected.append(candidate)
+        selected_timestamps.add(timestamp)
 
-    # If spacing leaves too few results, fill remaining slots with
-    # the highest-ranked entries not already selected.
-    selected_ids = {
-        item["original_index"] for item in selected
-    }
+    # Second pass: fill remaining places with other entries.
+    # This makes the endpoint useful for shorter transcripts too.
+    if len(selected) < limit:
+        for candidate in ranked:
+            if len(selected) >= limit:
+                break
 
-    for candidate in ranked:
-        if len(selected) >= min(MAX_HIGHLIGHTS, len(candidates)):
-            break
+            timestamp = candidate["timestamp"]
 
-        if candidate["original_index"] not in selected_ids:
+            if timestamp in selected_timestamps:
+                continue
+
             selected.append(candidate)
-            selected_ids.add(candidate["original_index"])
+            selected_timestamps.add(timestamp)
 
-    selected.sort(key=lambda item: item["start_seconds"])
+    # Return the selected suggestions in chronological order.
+    selected.sort(key=lambda item: item["timestamp"])
 
-    highlights: list[dict[str, Any]] = []
+    results: list[dict[str, Any]] = []
 
     for index, item in enumerate(selected):
-        start = item["start_seconds"]
+        timestamp = item["timestamp"]
 
         if index + 1 < len(selected):
-            next_start = selected[index + 1]["start_seconds"]
-            end = min(next_start, start + MAX_CLIP_SECONDS)
+            next_timestamp = selected[index + 1]["timestamp"]
+            suggested_end = max(timestamp + 5, next_timestamp)
         else:
-            end = start + DEFAULT_LAST_CLIP_SECONDS
+            suggested_end = timestamp + 30
 
-        if end <= start:
-            end = start + DEFAULT_LAST_CLIP_SECONDS
+        results.append(
+            {
+                "title": make_title(item["text"]),
+                "start_seconds": round(timestamp, 2),
+                "end_seconds": round(suggested_end, 2),
+                "timestamp": format_timestamp(timestamp),
+                "score": item["score"],
+                "reason": explain_score(item["text"]),
+                "excerpt": item["text"],
+            }
+        )
 
-        signal_text = ", ".join(item["signals"])
-
-        highlights.append({
-            "start_seconds": round(start, 2),
-            "end_seconds": round(end, 2),
-            "title": make_title(item["text"]),
-            "reason": (
-                f"Rank score {item['score']:.2f}. "
-                f"Text signals: {signal_text}. "
-                "This is a heuristic suggestion, not a verified "
-                "clip boundary. Review the video before editing."
-            ),
-            "transcript_excerpt": item["text"],
-        })
-
-    return highlights
+    return results
 
 
-# ---------------------------------------------------------
-# API routes
-# ---------------------------------------------------------
+def format_timestamp(seconds: float) -> str:
+    """Format seconds as MM:SS or HH:MM:SS."""
+    total_seconds = max(0, int(seconds))
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    remaining_seconds = total_seconds % 60
+
+    if hours:
+        return (
+            f"{hours:02d}:{minutes:02d}:"
+            f"{remaining_seconds:02d}"
+        )
+
+    return f"{minutes:02d}:{remaining_seconds:02d}"
+
+
+def explain_score(text: str) -> str:
+    """Give a simple explanation for the suggested highlight."""
+    words = {
+        word.lower()
+        for word in WORD_PATTERN.findall(text)
+    }
+
+    reasons = []
+
+    if words.intersection(KEYWORD_GROUPS["hook"]):
+        reasons.append("contains a possible attention-grabbing hook")
+
+    if words.intersection(KEYWORD_GROUPS["learning"]):
+        reasons.append("contains a useful lesson or explanation")
+
+    if words.intersection(KEYWORD_GROUPS["emotion"]):
+        reasons.append("contains expressive or impactful language")
+
+    if words.intersection(KEYWORD_GROUPS["action"]):
+        reasons.append("contains actionable advice")
+
+    if "?" in text:
+        reasons.append("uses a question that may engage viewers")
+
+    if not reasons:
+        reasons.append("selected from the available transcript segments")
+
+    return "; ".join(reasons).capitalize() + "."
+
 
 @app.get("/")
-def home():
+def home() -> dict[str, Any]:
     return {
         "name": "ClipForge AI API",
+        "version": APP_VERSION,
         "status": "online",
-        "version": "1.0.0",
-        "mode": "no-api-credit",
-        "endpoints": [
-            "/",
-            "/health",
-            "/transcript-highlights",
-            "/docs",
-        ],
+        "message": (
+            "ClipForge AI backend is running. "
+            "Use /docs to explore the API."
+        ),
+        "endpoints": {
+            "health": "/health",
+            "transcript_highlights": "/transcript-highlights",
+            "documentation": "/docs",
+        },
     }
 
 
 @app.get("/health")
-def health():
+def health() -> dict[str, Any]:
     return {
-        "status": "ok",
-        "mode": "no-api-credit",
+        "status": "healthy",
+        "version": APP_VERSION,
+        "mode": "local transcript scoring",
     }
 
 
 @app.post("/transcript-highlights")
-def transcript_highlights(request: TranscriptRequest):
-    entries, skipped_lines = parse_transcript(request.transcript)
+def transcript_highlights(
+    request: TranscriptRequest,
+) -> dict[str, Any]:
+    transcript = request.transcript.strip()
+
+    if len(transcript) < 20:
+        return {
+            "status": "error",
+            "mode": "local transcript scoring",
+            "count": 0,
+            "highlights": [],
+            "skipped_lines": 0,
+            "message": (
+                "Please provide a longer transcript "
+                "containing timestamps and text."
+            ),
+        }
+
+    entries, skipped_lines = parse_transcript(transcript)
+
+    if not entries:
+        return {
+            "status": "error",
+            "mode": "local transcript scoring",
+            "count": 0,
+            "highlights": [],
+            "skipped_lines": skipped_lines,
+            "message": (
+                "No timestamped transcript segments were found. "
+                "Try formats such as 0:05, 1:20, 01:02:15, "
+                "or 75s, followed by the spoken text."
+            ),
+        }
+
     highlights = choose_highlights(entries)
 
     return {
         "status": "success",
-        "mode": "no-api-credit",
+        "mode": "local transcript scoring",
         "count": len(highlights),
         "highlights": highlights,
         "skipped_lines": skipped_lines,
         "message": (
-            "Highlights were ranked using local text heuristics, "
-            "without an external AI API. These are suggestions, "
-            "not verified clip boundaries. Check timestamps "
-            "before editing."
+            "Highlight suggestions generated. "
+            "These are heuristic suggestions, not verified "
+            "viral moments or actual video clips."
         ),
-}
-            
+    }
+    
