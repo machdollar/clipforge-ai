@@ -1,4 +1,5 @@
 import re
+from collections import Counter
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
@@ -8,24 +9,28 @@ from pydantic import BaseModel, Field
 from youtube_transcript_api import YouTubeTranscriptApi
 
 
-APP_VERSION = "1.3.0"
+APP_VERSION = "2.0.0"
 MAX_HIGHLIGHTS = 15
-MIN_CLIP_SECONDS = 10
-MAX_CLIP_SECONDS = 45
 CLIP_LENGTHS = (15, 25, 35, 45)
+MIN_CLIP_SECONDS = 10
+MAX_TRANSCRIPT_CHARS = 100_000
 
 app = FastAPI(
     title="ClipForge AI API",
     description=(
-        "Timestamp-aware transcript highlight analysis and YouTube "
-        "transcript importing using local scoring rules."
+        "Free, rule-based transcript clipping, creator tools, "
+        "editing plans, and transcript insights."
     ),
     version=APP_VERSION,
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://machdollar.github.io"],
+    allow_origins=[
+        "https://machdollar.github.io",
+        "http://localhost",
+        "http://127.0.0.1",
+    ],
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
@@ -33,11 +38,28 @@ app.add_middleware(
 
 
 class TranscriptRequest(BaseModel):
-    transcript: str = Field(..., min_length=20, max_length=100000)
+    transcript: str = Field(
+        ..., min_length=20, max_length=MAX_TRANSCRIPT_CHARS
+    )
 
 
 class YouTubeRequest(BaseModel):
     url: str = Field(..., min_length=8, max_length=2048)
+
+
+class EditPlanRequest(BaseModel):
+    start_seconds: float = Field(..., ge=0)
+    end_seconds: float = Field(..., gt=0)
+    aspect_ratio: str = Field(default="9:16")
+    captions: bool = True
+    crop_to_vertical: bool = True
+
+
+class CreatorRequest(BaseModel):
+    transcript: str = Field(
+        ..., min_length=10, max_length=MAX_TRANSCRIPT_CHARS
+    )
+    platform: str = Field(default="YouTube Shorts", max_length=50)
 
 
 TIMESTAMP_TOKEN = (
@@ -57,47 +79,37 @@ TIMESTAMP_PATTERN = re.compile(
     r"\s*[\])}]?\s*(?:[-–—|]\s*)?",
     re.IGNORECASE,
 )
-
 WORD_PATTERN = re.compile(r"[a-zA-Z0-9']+")
 
-KEYWORD_GROUPS = {
+KEYWORDS = {
     "hook": {
-        "secret", "surprising", "shocking", "unexpected",
-        "nobody", "everyone", "mistake", "truth", "warning",
-        "finally", "revealed", "discover", "imagine", "actually",
-        "never", "always", "honestly", "crazy", "wild",
-        "controversial", "unbelievable", "wrong",
+        "secret", "surprising", "shocking", "unexpected", "mistake",
+        "truth", "warning", "revealed", "discover", "actually", "never",
+        "always", "crazy", "wild", "unbelievable", "wrong", "nobody",
     },
     "learning": {
-        "learn", "lesson", "tip", "guide", "explain",
-        "solution", "method", "strategy", "step", "steps",
-        "important", "remember", "understand", "because",
-        "reason", "example", "realize", "meaning", "answer",
+        "learn", "lesson", "tip", "guide", "explain", "solution",
+        "method", "strategy", "important", "remember", "understand",
+        "reason", "example", "answer", "because", "how", "why",
     },
     "emotion": {
-        "amazing", "incredible", "exciting", "powerful",
-        "changed", "success", "fail", "failure", "problem",
-        "challenge", "best", "worst", "favorite", "love",
-        "hate", "fear", "funny", "beautiful", "terrible",
-        "surprised", "believe", "shocked",
+        "amazing", "incredible", "exciting", "powerful", "success",
+        "failure", "problem", "challenge", "best", "worst", "love",
+        "hate", "funny", "beautiful", "terrible", "shocked",
     },
     "action": {
-        "start", "stop", "try", "use", "make", "build",
-        "create", "avoid", "improve", "change", "help",
-        "focus", "practice", "work", "choose", "decide",
-        "plan", "solve", "keep", "protect",
+        "start", "stop", "try", "use", "make", "build", "create",
+        "avoid", "improve", "change", "help", "focus", "practice",
+        "work", "choose", "decide", "plan", "solve", "keep",
     },
 }
 
-FILLER_WORDS = set(
-    """
-    a an and are as at be but by for from had has have he her
-    here him his i if in into is it its just me my of on or our
-    she so that the their them there they this to us was we were
-    what when where which who will with you your um uh like
-    """
-    .split()
-)
+FILLER_WORDS = set("""
+a an and are as at be but by for from had has have he her here him
+his i if in into is it its just me my of on or our she so that the
+their them there they this to us was we were what when where which
+who will with you your um uh like yeah okay ok hello hey welcome
+""".split())
 
 WEAK_OPENINGS = {
     "hello", "hi", "hey", "welcome", "okay", "ok", "so",
@@ -121,8 +133,7 @@ def parse_timestamp(value: str) -> float:
         return int(minutes) * 60 + float(seconds)
 
     match = re.fullmatch(
-        r"(\d+(?:\.\d+)?)\s*(?:seconds?|secs?|s)",
-        value,
+        r"(\d+(?:\.\d+)?)\s*(?:seconds?|secs?|s)", value
     )
     if match:
         return float(match.group(1))
@@ -138,19 +149,17 @@ def parse_timestamp(value: str) -> float:
             raise ValueError("Invalid timestamp")
         return int(match.group(1)) * 60 + seconds
 
-    raise ValueError("Unsupported timestamp format")
+    raise ValueError("Unsupported timestamp")
 
 
 def format_timestamp(seconds: float) -> str:
     total = max(0, int(seconds))
     hours = total // 3600
     minutes = (total % 3600) // 60
-    remaining = total % 60
-
+    secs = total % 60
     if hours:
-        return f"{hours:02d}:{minutes:02d}:{remaining:02d}"
-
-    return f"{minutes:02d}:{remaining:02d}"
+        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+    return f"{minutes:02d}:{secs:02d}"
 
 
 def clean_text(text: str) -> str:
@@ -159,11 +168,9 @@ def clean_text(text: str) -> str:
     return text.strip(" \t-–—|:;,")
 
 
-def parse_transcript(
-    transcript: str,
-) -> tuple[list[dict[str, Any]], int]:
-    entries: list[dict[str, Any]] = []
-    skipped_lines = 0
+def parse_transcript(transcript: str) -> tuple[list[dict[str, Any]], int]:
+    entries = []
+    skipped = 0
 
     for line in transcript.splitlines():
         line = line.strip()
@@ -171,50 +178,44 @@ def parse_transcript(
             continue
 
         matches = list(TIMESTAMP_PATTERN.finditer(line))
-
         if not matches:
-            # Preserve untimestamped continuation lines.
             if entries:
                 continuation = clean_text(line)
                 if continuation:
                     entries[-1]["text"] += " " + continuation
             else:
-                skipped_lines += 1
+                skipped += 1
             continue
 
-        found = 0
-
+        found = False
         for index, match in enumerate(matches):
             try:
                 timestamp = parse_timestamp(match.group("timestamp"))
-            except (ValueError, OverflowError):
-                skipped_lines += 1
+            except ValueError:
+                skipped += 1
                 continue
 
-            end_position = (
+            end_pos = (
                 matches[index + 1].start()
                 if index + 1 < len(matches)
                 else len(line)
             )
-
-            text = clean_text(line[match.end():end_position])
-
+            text = clean_text(line[match.end():end_pos])
             if not text:
-                skipped_lines += 1
+                skipped += 1
                 continue
 
             entries.append({
                 "timestamp": round(timestamp, 3),
                 "text": text,
             })
-            found += 1
+            found = True
 
         if not found:
-            skipped_lines += 1
+            skipped += 1
 
     entries.sort(key=lambda item: item["timestamp"])
-
-    merged: list[dict[str, Any]] = []
+    merged = []
 
     for entry in entries:
         if merged and entry["timestamp"] == merged[-1]["timestamp"]:
@@ -222,57 +223,53 @@ def parse_transcript(
         else:
             merged.append(entry.copy())
 
-    return merged, skipped_lines
+    return merged, skipped
+
+
+def words(text: str) -> list[str]:
+    return [w.lower() for w in WORD_PATTERN.findall(text)]
 
 
 def meaningful_words(text: str) -> list[str]:
     return [
-        word.lower()
-        for word in WORD_PATTERN.findall(text)
-        if word.lower() not in FILLER_WORDS and len(word) > 2
+        word for word in words(text)
+        if word not in FILLER_WORDS and len(word) > 2
     ]
 
 
-def score_entry(text: str) -> float:
-    words = [word.lower() for word in WORD_PATTERN.findall(text)]
-
-    if not words:
+def score_text(text: str) -> float:
+    all_words = words(text)
+    if not all_words:
         return 0.0
 
-    unique = set(words)
+    unique = set(all_words)
     score = 0.0
 
-    for group in KEYWORD_GROUPS.values():
+    for group in KEYWORDS.values():
         score += min(2, len(unique.intersection(group))) * 1.6
 
-    meaningful = meaningful_words(text)
-    score += min(len(meaningful), 30) * 0.10
+    score += min(len(meaningful_words(text)), 30) * 0.10
 
-    if len(words) < 5:
+    if len(all_words) < 5:
         score -= 1.5
-
     if "?" in text:
         score += 1.0
     if "!" in text:
         score += 0.7
     if re.search(
         r"\b(but|however|because|instead|although|except)\b",
-        text,
-        re.IGNORECASE,
+        text, re.I
     ):
         score += 0.8
     if re.search(
         r"\b(the reason|the truth|what happened|here's why|"
         r"the problem is|the biggest|the key is|the lesson is)\b",
-        text,
-        re.IGNORECASE,
+        text, re.I
     ):
         score += 1.3
     if text.rstrip().endswith((".", "!", "?", "…")):
         score += 0.3
-
-    first_word = words[0] if words else ""
-    if first_word in WEAK_OPENINGS:
+    if all_words and all_words[0] in WEAK_OPENINGS:
         score -= 0.5
 
     return round(max(score, 0.0), 3)
@@ -280,131 +277,93 @@ def score_entry(text: str) -> float:
 
 def make_title(text: str) -> str:
     text = re.sub(r"\s+", " ", text).strip(" .,!?:;—-")
-
     if not text:
         return "Potential highlight"
-
-    words = text.split()
-    title = " ".join(words[:9])
-
-    if len(words) > 9:
+    title = " ".join(text.split()[:9])
+    if len(text.split()) > 9:
         title += "…"
     if len(title) > 70:
         title = title[:67].rstrip() + "..."
-
     return title[0].upper() + title[1:]
 
 
 def explain_score(text: str) -> str:
-    words = {word.lower() for word in WORD_PATTERN.findall(text)}
+    tokens = set(words(text))
     reasons = []
 
-    if words.intersection(KEYWORD_GROUPS["hook"]):
-        reasons.append("contains a possible attention-grabbing hook")
-    if words.intersection(KEYWORD_GROUPS["learning"]):
-        reasons.append("contains a lesson or explanation")
-    if words.intersection(KEYWORD_GROUPS["emotion"]):
-        reasons.append("uses expressive or impactful language")
-    if words.intersection(KEYWORD_GROUPS["action"]):
-        reasons.append("contains actionable advice")
+    if tokens.intersection(KEYWORDS["hook"]):
+        reasons.append("possible attention-grabbing hook")
+    if tokens.intersection(KEYWORDS["learning"]):
+        reasons.append("lesson or explanation")
+    if tokens.intersection(KEYWORDS["emotion"]):
+        reasons.append("expressive language")
+    if tokens.intersection(KEYWORDS["action"]):
+        reasons.append("actionable advice")
     if "?" in text:
-        reasons.append("uses a question")
-    if re.search(
-        r"\b(but|however|because|instead|although)\b",
-        text,
-        re.IGNORECASE,
-    ):
-        reasons.append("includes a contrast or explanation")
-
+        reasons.append("question that may invite curiosity")
     if not reasons:
-        reasons.append("selected from the available transcript")
+        reasons.append("content selected from the transcript")
 
     return "; ".join(reasons).capitalize() + "."
 
 
-def estimate_transcript_duration(
-    entries: list[dict[str, Any]],
-) -> float:
+def estimate_duration(entries: list[dict[str, Any]]) -> float:
     last = entries[-1]
-    word_count = len(WORD_PATTERN.findall(last["text"]))
-    estimated_speech = word_count / 2.5
-
-    # This is an estimate only, not a verified video duration.
-    tail = min(60.0, max(4.0, estimated_speech))
-
-    return last["timestamp"] + tail
+    speech_seconds = len(WORD_PATTERN.findall(last["text"])) / 2.5
+    return last["timestamp"] + min(60.0, max(4.0, speech_seconds))
 
 
-def build_candidates(
-    entries: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
+def build_candidates(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if not entries:
         return []
 
-    video_duration = estimate_transcript_duration(entries)
+    duration_total = estimate_duration(entries)
     candidates = []
     seen = set()
 
-    for start_index, entry in enumerate(entries):
+    for index, entry in enumerate(entries):
         start = float(entry["timestamp"])
 
         for target_length in CLIP_LENGTHS:
-            end = min(start + target_length, video_duration)
+            end = min(start + target_length, duration_total)
             duration = end - start
-
             if duration < MIN_CLIP_SECONDS:
                 continue
 
-            segment_texts = []
-
-            for item in entries[start_index:]:
+            parts = []
+            for item in entries[index:]:
                 if item["timestamp"] >= end:
                     break
                 if item["text"]:
-                    segment_texts.append(item["text"])
+                    parts.append(item["text"])
 
-            combined_text = clean_text(" ".join(segment_texts))
-            words = WORD_PATTERN.findall(combined_text)
-
-            if len(words) < 8:
+            combined = clean_text(" ".join(parts))
+            count = len(WORD_PATTERN.findall(combined))
+            if count < 8:
                 continue
 
-            # Avoid generating the same window repeatedly.
             signature = (round(start, 2), round(end, 2))
             if signature in seen:
                 continue
             seen.add(signature)
 
-            base_score = score_entry(combined_text)
-            word_count = len(words)
-            meaningful_count = len(meaningful_words(combined_text))
-
-            # Prefer useful, coherent segments without rewarding
-            # length alone. This is a heuristic, not an AI prediction.
-            density = meaningful_count / max(word_count, 1)
-            length_bonus = min(word_count, 65) * 0.035
-            density_bonus = density * 2.0
-
-            if word_count < 15:
+            meaningful_count = len(meaningful_words(combined))
+            density = meaningful_count / max(count, 1)
+            length_bonus = min(count, 65) * 0.035
+            if count < 15:
                 length_bonus -= 1.0
-
-            # A complete thought is often easier to use as a short.
-            if re.search(r"[.!?…][\"')\]]?\s*$", combined_text):
+            if re.search(r"[.!?…][\"')\]]?\s*$", combined):
                 length_bonus += 0.5
 
-            total_score = (
-                base_score * 0.7
-                + length_bonus
-                + density_bonus
-            )
+            total = score_text(combined) * 0.7 + length_bonus + density * 2
 
             candidates.append({
                 "start_seconds": round(start, 2),
                 "end_seconds": round(end, 2),
                 "duration_seconds": round(duration, 2),
-                "text": combined_text,
-                "score": round(max(total_score, 0.0), 3),
-                "word_count": word_count,
+                "text": combined,
+                "score": round(max(total, 0.0), 3),
+                "word_count": count,
             })
 
     return candidates
@@ -416,77 +375,48 @@ def overlap_ratio(a: dict[str, Any], b: dict[str, Any]) -> float:
         min(a["end_seconds"], b["end_seconds"])
         - max(a["start_seconds"], b["start_seconds"]),
     )
-
-    shorter = min(
-        a["duration_seconds"],
-        b["duration_seconds"],
-    )
-
+    shorter = min(a["duration_seconds"], b["duration_seconds"])
     return overlap / shorter if shorter > 0 else 0.0
 
 
 def choose_highlights(
-    entries: list[dict[str, Any]],
-    limit: int = MAX_HIGHLIGHTS,
+    entries: list[dict[str, Any]], limit: int = MAX_HIGHLIGHTS
 ) -> list[dict[str, Any]]:
-    candidates = build_candidates(entries)
-
-    if not candidates:
-        return []
-
     ranked = sorted(
-        candidates,
-        key=lambda item: (
-            item["score"],
-            item["word_count"],
-        ),
+        build_candidates(entries),
+        key=lambda item: (item["score"], item["word_count"]),
         reverse=True,
     )
+    selected = []
 
-    selected: list[dict[str, Any]] = []
-
-    # First pass: prefer strong clips that do not repeat the same moment.
     for candidate in ranked:
         if len(selected) >= limit:
             break
-
         if candidate["score"] <= 0:
             continue
-
-        if any(
-            overlap_ratio(candidate, chosen) > 0.35
-            for chosen in selected
-        ):
+        if any(overlap_ratio(candidate, item) > 0.35 for item in selected):
             continue
-
         selected.append(candidate)
 
-    # Second pass: allow additional moments if fewer than requested
-    # were found. Short transcripts may not contain 15 good clips.
     if len(selected) < limit:
         for candidate in ranked:
             if len(selected) >= limit:
                 break
-
             if candidate in selected:
                 continue
-
             if any(
-                overlap_ratio(candidate, chosen) > 0.70
-                for chosen in selected
+                overlap_ratio(candidate, item) > 0.70
+                for item in selected
             ):
                 continue
-
             selected.append(candidate)
 
     selected.sort(key=lambda item: item["start_seconds"])
-
     results = []
 
     for item in selected:
         start = item["start_seconds"]
         end = item["end_seconds"]
-
         results.append({
             "title": make_title(item["text"]),
             "start_seconds": start,
@@ -502,17 +432,14 @@ def choose_highlights(
     return results
 
 
-def extract_youtube_video_id(url: str) -> str:
+def extract_video_id(url: str) -> str:
     value = url.strip()
-    parsed = urlparse(
-        value if "://" in value else "https://" + value
-    )
+    parsed = urlparse(value if "://" in value else "https://" + value)
     host = (parsed.hostname or "").lower()
     video_id = ""
 
     if host in {"youtu.be", "www.youtu.be"}:
         video_id = parsed.path.strip("/").split("/")[0]
-
     elif host in {
         "youtube.com", "www.youtube.com", "m.youtube.com",
         "music.youtube.com", "youtube-nocookie.com",
@@ -522,9 +449,7 @@ def extract_youtube_video_id(url: str) -> str:
             video_id = parse_qs(parsed.query).get("v", [""])[0]
         else:
             parts = [p for p in parsed.path.split("/") if p]
-            if len(parts) >= 2 and parts[0] in {
-                "shorts", "embed", "live", "v"
-            }:
+            if len(parts) >= 2 and parts[0] in {"shorts", "embed", "live", "v"}:
                 video_id = parts[1]
 
     if not re.fullmatch(r"[A-Za-z0-9_-]{11}", video_id):
@@ -532,14 +457,11 @@ def extract_youtube_video_id(url: str) -> str:
             status_code=400,
             detail="Please enter a valid YouTube video URL.",
         )
-
     return video_id
 
 
-def get_highlights_response(
-    transcript: str,
-    mode: str,
-    video_id: str | None = None,
+def highlights_response(
+    transcript: str, mode: str, video_id: str | None = None
 ) -> dict[str, Any]:
     entries, skipped = parse_transcript(transcript)
     highlights = choose_highlights(entries)
@@ -548,13 +470,12 @@ def get_highlights_response(
         raise HTTPException(
             status_code=400,
             detail=(
-                "No usable timestamped transcript segments were found. "
-                "Check that your transcript contains timestamps and enough "
-                "text to form clips."
+                "No usable timestamped segments were found. Paste a "
+                "transcript with timestamps and enough text for clips."
             ),
         )
 
-    response = {
+    result = {
         "status": "success",
         "mode": mode,
         "count": len(highlights),
@@ -562,16 +483,13 @@ def get_highlights_response(
         "skipped_lines": skipped,
         "transcript_segments": len(entries),
         "message": (
-            "Timestamp-aware highlight suggestions generated using local "
-            "heuristics. Scores are not verified virality predictions, "
-            "and timestamps have not been checked against the actual video."
+            "Suggestions use local scoring rules, not verified virality "
+            "predictions. Confirm every timestamp against the source video."
         ),
     }
-
     if video_id:
-        response["video_id"] = video_id
-
-    return response
+        result["video_id"] = video_id
+    return result
 
 
 @app.get("/")
@@ -580,13 +498,15 @@ def home() -> dict[str, Any]:
         "name": "ClipForge AI API",
         "version": APP_VERSION,
         "status": "online",
-        "message": "ClipForge AI backend is running.",
-        "endpoints": {
-            "health": "/health",
-            "transcript_highlights": "/transcript-highlights",
-            "youtube_highlights": "/youtube-transcript-highlights",
-            "documentation": "/docs",
-        },
+        "endpoints": [
+            "/health",
+            "/transcript-highlights",
+            "/youtube-transcript-highlights",
+            "/transcript-insights",
+            "/creator-tools",
+            "/video-edit-plan",
+            "/docs",
+        ],
     }
 
 
@@ -595,15 +515,22 @@ def health() -> dict[str, Any]:
     return {
         "status": "healthy",
         "version": APP_VERSION,
-        "mode": "local timestamp-aware transcript scoring",
+        "mode": "free local transcript analysis",
+    }
+
+
+@app.get("/ai-test")
+def ai_test() -> dict[str, Any]:
+    return {
+        "status": "success",
+        "mode": "local",
+        "message": "Local tools are available; no paid AI API is required.",
     }
 
 
 @app.post("/transcript-highlights")
-def transcript_highlights(
-    request: TranscriptRequest,
-) -> dict[str, Any]:
-    return get_highlights_response(
+def transcript_highlights(request: TranscriptRequest) -> dict[str, Any]:
+    return highlights_response(
         request.transcript.strip(),
         "local timestamp-aware transcript scoring",
     )
@@ -613,52 +540,164 @@ def transcript_highlights(
 def youtube_transcript_highlights(
     request: YouTubeRequest,
 ) -> dict[str, Any]:
-    video_id = extract_youtube_video_id(request.url)
+    video_id = extract_video_id(request.url)
 
     try:
-        fetched = YouTubeTranscriptApi().fetch(
-            video_id,
-            languages=["en"],
-        )
-
+        fetched = YouTubeTranscriptApi().fetch(video_id, languages=["en"])
         lines = []
-
         for snippet in fetched:
             text = re.sub(r"\s+", " ", str(snippet.text)).strip()
             if text:
-                lines.append(
-                    f"{format_timestamp(float(snippet.start))} {text}"
-                )
-
+                lines.append(f"{format_timestamp(float(snippet.start))} {text}")
     except Exception as exc:
-        error_name = type(exc).__name__
-
-        if error_name in {"TranscriptsDisabled", "NoTranscriptFound"}:
+        name = type(exc).__name__
+        if name in {"TranscriptsDisabled", "NoTranscriptFound"}:
             message = (
-                "No accessible English transcript was found. Try a video "
-                "with captions or paste a transcript manually."
+                "No accessible English captions were found. Try another "
+                "video or paste the transcript manually."
             )
-        elif error_name in {"VideoUnavailable", "InvalidVideoId"}:
-            message = "This YouTube video is unavailable or its URL is invalid."
+        elif name in {"VideoUnavailable", "InvalidVideoId"}:
+            message = "The video is unavailable or the URL is invalid."
         else:
             message = (
-                "Could not retrieve this transcript. Captions may be "
-                "unavailable or YouTube may be blocking automated access. "
-                "You can still paste a transcript manually."
+                "YouTube captions could not be retrieved. Captions may be "
+                "disabled or automated access may be blocked. Paste the "
+                "transcript manually instead."
             )
-
         raise HTTPException(status_code=400, detail=message) from None
 
     transcript = "\n".join(lines)
-
     if len(transcript) < 20:
+        raise HTTPException(status_code=400, detail="Transcript is empty or too short.")
+
+    return highlights_response(
+        transcript,
+        "YouTube transcript + local scoring",
+        video_id,
+    )
+
+
+@app.post("/transcript-insights")
+def transcript_insights(request: TranscriptRequest) -> dict[str, Any]:
+    transcript = request.transcript.strip()
+    entries, skipped = parse_transcript(transcript)
+    if not entries:
         raise HTTPException(
             status_code=400,
-            detail="The retrieved transcript is empty or too short.",
+            detail="Add timestamped transcript lines to analyze topics.",
         )
 
-    return get_highlights_response(
-        transcript,
-        "YouTube transcript + local timestamp-aware scoring",
-        video_id,
-)
+    tokens = meaningful_words(" ".join(item["text"] for item in entries))
+    common = Counter(tokens).most_common(15)
+    quotes = sorted(
+        entries,
+        key=lambda item: (
+            score_text(item["text"]),
+            len(item["text"]),
+        ),
+        reverse=True,
+    )[:8]
+
+    return {
+        "status": "success",
+        "segment_count": len(entries),
+        "skipped_lines": skipped,
+        "keywords": [{"word": word, "count": count} for word, count in common],
+        "memorable_quotes": [
+            {
+                "timestamp": format_timestamp(item["timestamp"]),
+                "text": item["text"],
+                "score": score_text(item["text"]),
+            }
+            for item in quotes
+        ],
+        "note": "Keyword and quote selection is rule-based, not human judgment.",
+    }
+
+
+@app.post("/video-edit-plan")
+def video_edit_plan(request: EditPlanRequest) -> dict[str, Any]:
+    if request.end_seconds <= request.start_seconds:
+        raise HTTPException(
+            status_code=400,
+            detail="End time must be later than start time.",
+        )
+
+    duration = request.end_seconds - request.start_seconds
+    if duration > 180:
+        raise HTTPException(
+            status_code=400,
+            detail="Choose a clip of 180 seconds or less.",
+        )
+
+    if request.aspect_ratio not in {"9:16", "16:9", "1:1"}:
+        raise HTTPException(
+            status_code=400,
+            detail="Aspect ratio must be 9:16, 16:9, or 1:1.",
+        )
+
+    return {
+        "status": "success",
+        "plan_only": True,
+        "start_seconds": request.start_seconds,
+        "end_seconds": request.end_seconds,
+        "start_timestamp": format_timestamp(request.start_seconds),
+        "end_timestamp": format_timestamp(request.end_seconds),
+        "duration_seconds": round(duration, 2),
+        "aspect_ratio": request.aspect_ratio,
+        "captions": request.captions,
+        "crop_to_vertical": request.crop_to_vertical,
+        "export_ready": False,
+        "message": (
+            "Editing plan created. This endpoint does not render a video. "
+            "MP4 export needs an uploaded source file and FFmpeg processing."
+        ),
+    }
+
+
+@app.post("/creator-tools")
+def creator_tools(request: CreatorRequest) -> dict[str, Any]:
+    transcript = re.sub(r"\s+", " ", request.transcript).strip()
+    if len(transcript) < 10:
+        raise HTTPException(status_code=400, detail="Transcript is too short.")
+
+    entries, _ = parse_transcript(transcript)
+    source_texts = [item["text"] for item in entries] or [transcript]
+    best = sorted(
+        source_texts,
+        key=lambda text: (score_text(text), len(text)),
+        reverse=True,
+    )[:3]
+
+    title_seed = make_title(best[0])
+    hashtags = []
+    for word, _count in Counter(meaningful_words(transcript)).most_common(8):
+        tag = re.sub(r"[^a-zA-Z0-9]", "", word)
+        if len(tag) >= 4:
+            hashtags.append("#" + tag.capitalize())
+
+    hashtags = list(dict.fromkeys(
+        ["#Shorts", "#ClipForge"] + hashtags
+    ))[:10]
+
+    return {
+        "status": "success",
+        "platform": request.platform,
+        "titles": [
+            title_seed,
+            f"What You Need to Know About {title_seed[:45]}",
+            f"This Changed the Conversation: {title_seed[:40]}",
+        ],
+        "description": (
+            f"Watch this moment and share your thoughts!\n\n"
+            f"Created with ClipForge AI.\n\n"
+            + " ".join(hashtags)
+        ),
+        "hashtags": hashtags,
+        "thumbnail_text": title_seed[:42],
+        "quote_ideas": best,
+        "note": (
+            "Generated from transcript text using local rules. Review "
+            "titles and hashtags before publishing."
+        ),
+    }
